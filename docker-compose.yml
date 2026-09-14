@@ -1,0 +1,136 @@
+name: sql-analytics-workbench
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL. The official image is used as-is: pg_stat_statements ships with
+  # it, so no custom image is needed. All planner-relevant settings are declared
+  # here explicitly (NFR-09) so that benchmark numbers in the report can be
+  # reproduced from this file alone.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: saw-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set it in .env}
+      POSTGRES_DB: postgres
+      # consumed by the init scripts in docker/postgres/initdb
+      SAW_ADMIN_USER: ${SAW_ADMIN_USER:-saw_admin}
+      SAW_ADMIN_PASSWORD: ${SAW_ADMIN_PASSWORD:?set it in .env}
+      SAW_READONLY_USER: ${SAW_READONLY_USER:-saw_readonly}
+      SAW_READONLY_PASSWORD: ${SAW_READONLY_PASSWORD:?set it in .env}
+      MUSEUM_DB: ${MUSEUM_DB:-museum}
+      DVDRENTAL_DB: ${DVDRENTAL_DB:-dvdrental}
+    command:
+      - postgres
+      # --- diagnostics -------------------------------------------------------
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.max=10000
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - track_io_timing=on
+      - -c
+      - track_functions=all
+      # --- memory / planner --------------------------------------------------
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - effective_cache_size=768MB
+      # SSD-oriented value; the default 4.0 assumes spinning disks and would
+      # bias the planner away from index scans on this hardware.
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - default_statistics_target=100
+      # --- logging -----------------------------------------------------------
+      - -c
+      - log_min_duration_statement=500
+      - -c
+      - log_statement=none
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+      - ./db:/db:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # FastAPI application.
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: saw-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      MUSEUM_DB: ${MUSEUM_DB:-museum}
+      DVDRENTAL_DB: ${DVDRENTAL_DB:-dvdrental}
+      SAW_ADMIN_USER: ${SAW_ADMIN_USER:-saw_admin}
+      SAW_ADMIN_PASSWORD: ${SAW_ADMIN_PASSWORD:?set it in .env}
+      SAW_READONLY_USER: ${SAW_READONLY_USER:-saw_readonly}
+      SAW_READONLY_PASSWORD: ${SAW_READONLY_PASSWORD:?set it in .env}
+      STATEMENT_TIMEOUT_MS: ${STATEMENT_TIMEOUT_MS:-15000}
+      DEFAULT_ROW_LIMIT: ${DEFAULT_ROW_LIMIT:-1000}
+      BENCHMARK_DEFAULT_RUNS: ${BENCHMARK_DEFAULT_RUNS:-10}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      # bind-mounts give live reload during development; in a graded run the
+      # image content is identical anyway
+      - ./app:/srv/app
+      - ./queries:/srv/queries
+      - ./experiments:/srv/experiments
+      - ./reports:/srv/reports
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0 --port 8000
+      --reload --reload-dir /srv/app
+
+  # ---------------------------------------------------------------------------
+  # pgAdmin. Optional: started only with `docker compose --profile tools up`.
+  # Kept out of the default set so the base stack stays light.
+  # ---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:8.12
+    container_name: saw-pgadmin
+    restart: unless-stopped
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@local.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?set it in .env}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+
+volumes:
+  pgdata:
+  pgadmin:
