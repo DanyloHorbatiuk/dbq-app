@@ -21,6 +21,8 @@ services:
       SAW_ADMIN_PASSWORD: ${SAW_ADMIN_PASSWORD:?set it in .env}
       SAW_READONLY_USER: ${SAW_READONLY_USER:-saw_readonly}
       SAW_READONLY_PASSWORD: ${SAW_READONLY_PASSWORD:?set it in .env}
+      MUSEUM_MANAGER_USER: ${MUSEUM_MANAGER_USER:-museum_manager}
+      MUSEUM_MANAGER_PASSWORD: ${MUSEUM_MANAGER_PASSWORD:?set it in .env}
       MUSEUM_DB: ${MUSEUM_DB:-museum}
       DVDRENTAL_DB: ${DVDRENTAL_DB:-dvdrental}
     command:
