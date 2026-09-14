@@ -1,0 +1,2 @@
+Place dvdrental.tar here before `make up` / `make reset` (see README.md).
+The file itself is not committed — it is listed in .gitignore.

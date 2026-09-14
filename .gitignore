@@ -1,0 +1,20 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Large / manually-provided dump, see README.md
+db/dvdrental/dvdrental.tar
+
+# Generated output (produced by code, never hand-edited — CLAUDE.md)
+reports/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
