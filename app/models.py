@@ -107,12 +107,30 @@ class ColumnInfo(BaseModel):
 
 class ExecuteTimings(BaseModel):
     roundtrip_ms: float
-    # planning_ms/execution_ms come from EXPLAIN ANALYZE (SPEC.md §ФВ-02)
-    # and stay unset until Etap 7's app/explain.py exists to produce them
-    # — with_plan is accepted here now so the request/response contract
-    # doesn't change shape once it does.
+    # planning_ms/execution_ms come from EXPLAIN ANALYZE (SPEC.md §ФВ-02),
+    # filled in by app.explain when with_plan=true — None otherwise.
     planning_ms: float | None = None
     execution_ms: float | None = None
+
+
+class PlanNodeOut(BaseModel):
+    """One flattened plan-tree node — SPEC.md §ФВ-04."""
+
+    node_type: str
+    depth: int
+    plan_rows: float
+    actual_rows: float | None
+    actual_loops: int | None
+    actual_total_time_ms: float | None
+    self_time_ms: float | None
+    estimation_error: float | None
+    misestimated: bool
+
+
+class PlanSummary(BaseModel):
+    node_types: list[str]
+    slowest_node: PlanNodeOut | None
+    estimation_error: float | None
 
 
 class ExecuteResponse(BaseModel):
@@ -122,3 +140,35 @@ class ExecuteResponse(BaseModel):
     row_count: int
     truncated: bool
     timings: ExecuteTimings
+    plan: Any = None
+    plan_summary: PlanSummary | None = None
+
+
+class ExplainRequest(BaseModel):
+    """POST /api/explain body — SPEC.md §ФВ-04. Same query_id/sql
+    resolution rules as ExecuteRequest."""
+
+    query_id: str | None = None
+    sql: str | None = None
+    database: Database | None = None
+    variant: int | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    analyze: bool = True
+    buffers: bool = True
+
+    @model_validator(mode="after")
+    def _check_source(self) -> "ExplainRequest":
+        if bool(self.query_id) == bool(self.sql):
+            raise ValueError("Provide exactly one of query_id or sql.")
+        if self.sql is not None and self.database is None:
+            raise ValueError("database is required when sql is provided.")
+        return self
+
+
+class ExplainResponse(BaseModel):
+    query_id: str | None = None
+    plan: Any
+    nodes: list[PlanNodeOut]
+    planning_ms: float | None
+    execution_ms: float | None
+    plan_summary: PlanSummary

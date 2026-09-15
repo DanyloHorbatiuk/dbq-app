@@ -98,7 +98,7 @@ async def execute_readonly(
                 columns = _columns_from_cursor(cur)
                 rows = await cur.fetchmany(row_limit + 1)
     except psycopg.Error as exc:
-        raise QueryExecutionError(_extract_error_info(exc)) from exc
+        raise QueryExecutionError(extract_error_info(exc)) from exc
 
     truncated = len(rows) > row_limit
     if truncated:
@@ -142,7 +142,10 @@ def _pg_type_name(oid: int) -> str:
     return info.name if info else f"oid:{oid}"
 
 
-def _extract_error_info(exc: psycopg.Error) -> DbErrorInfo:
+def extract_error_info(exc: psycopg.Error) -> DbErrorInfo:
+    """Public: also used by app.explain, which needs the same
+    sqlstate/message/position extraction for EXPLAIN's own psycopg
+    errors."""
     diag = getattr(exc, "diag", None)
     sqlstate = getattr(diag, "sqlstate", None) or getattr(exc, "sqlstate", None)
     message = (getattr(diag, "message_primary", None) or str(exc)).strip()

@@ -15,6 +15,7 @@ from app.config import get_settings
 from app.db import Pools
 from app.routers.catalog import router as catalog_router
 from app.routers.execute import router as execute_router
+from app.routers.explain import router as explain_router
 from app.routers.meta import router as meta_router
 
 # Loaded eagerly at import time, before the FastAPI app object even
@@ -52,6 +53,7 @@ app = FastAPI(
 app.include_router(meta_router, prefix="/api")
 app.include_router(catalog_router, prefix="/api")
 app.include_router(execute_router, prefix="/api")
+app.include_router(explain_router, prefix="/api")
 
 # Mounted last and at "/": API routes registered above always match
 # first, so this only ever serves the frontend's static files (added in

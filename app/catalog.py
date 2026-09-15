@@ -146,6 +146,22 @@ def get_catalog() -> dict[str, QueryDefinition]:
     return load_catalog(DEFAULT_CATALOG_ROOT)
 
 
+def resolve_variant_sql(entry: QueryDefinition, variant: int | None) -> str:
+    """Returns entry.sql, or one of entry.variants' sql when a variant
+    index is given. Shared by routers/execute.py and routers/explain.py
+    so query_id + variant resolves identically in both — raises
+    IndexError (not an HTTP exception: this module doesn't know about
+    FastAPI) so each router can translate it into its own 400 response.
+    """
+    if variant is None:
+        return entry.sql
+    if not (0 <= variant < len(entry.variants)):
+        raise IndexError(
+            f"Query {entry.id} has no variant {variant} (has {len(entry.variants)})."
+        )
+    return entry.variants[variant].sql
+
+
 def compute_coverage(catalog: dict[str, QueryDefinition]) -> dict[str, Any]:
     """Which SQL_FEATURE_CHECKLIST entries at least one catalog query
     covers, and how many queries cover each — GET /api/meta/coverage
