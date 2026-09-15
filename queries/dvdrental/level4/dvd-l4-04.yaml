@@ -1,0 +1,31 @@
+id: dvd-l4-04
+database: dvdrental
+level: 4
+title: "Три найдорожчі фільми в кожній категорії"
+business_question: >
+  Які три фільми з найвищою ставкою прокату представлені в кожній
+  категорії?
+sql_features: [top_n_in_group, window_function]
+description: >
+  ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) нумерує фільми
+  всередині кожної категорії окремо — фільтр rnk <= 3 дає "top-N у групі"
+  без окремого запиту на кожну категорію.
+expected_insight: >
+  Через те, що rental_rate набуває лише трьох значень (0.99/2.99/4.99),
+  у кожній категорії буде багато фільмів з максимальною ставкою 4.99 —
+  ROW_NUMBER довільно обирає, які саме три з них потраплять у топ, коли
+  значень для впорядкування замало для однозначного розрізнення.
+sql: |
+  SELECT category_name, title, rental_rate, rnk
+  FROM (
+      SELECT
+          cat.name AS category_name,
+          f.title,
+          f.rental_rate,
+          ROW_NUMBER() OVER (PARTITION BY cat.category_id ORDER BY f.rental_rate DESC, f.title) AS rnk
+      FROM film f
+      JOIN film_category fc ON fc.film_id = f.film_id
+      JOIN category cat ON cat.category_id = fc.category_id
+  ) ranked
+  WHERE rnk <= 3
+  ORDER BY category_name, rnk;

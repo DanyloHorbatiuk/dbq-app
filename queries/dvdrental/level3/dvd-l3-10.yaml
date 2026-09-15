@@ -1,0 +1,31 @@
+id: dvd-l3-10
+database: dvdrental
+level: 3
+title: "Накопичувальні витрати клієнта по місяцях"
+business_question: >
+  Скільки кожен клієнт витратив за кожен місяць і скільки — наростаючим
+  підсумком з початку періоду спостережень?
+sql_features: [cte, window_function]
+description: >
+  CTE агрегує суму платежів по клієнту й місяцю один раз, а
+  SUM(...) OVER (PARTITION BY customer_id ORDER BY month) рахує
+  накопичувальний підсумок окремо для кожного клієнта — PARTITION BY тут
+  ключовий, без нього накопичення йшло б через усіх клієнтів підряд.
+expected_insight: >
+  Оскільки payment_date охоплює лише три повні місяці (лютий-квітень
+  2007), накопичувальна сума для більшості клієнтів має щонайбільше три
+  сходинки — для довшого періоду спостережень графік був би змістовнішим.
+sql: |
+  WITH monthly AS (
+      SELECT customer_id, date_trunc('month', payment_date)::date AS month, SUM(amount) AS spent
+      FROM payment
+      GROUP BY customer_id, date_trunc('month', payment_date)
+  )
+  SELECT
+      customer_id,
+      month,
+      spent,
+      SUM(spent) OVER (PARTITION BY customer_id ORDER BY month) AS cumulative_spent
+  FROM monthly
+  ORDER BY customer_id, month
+  LIMIT 15;

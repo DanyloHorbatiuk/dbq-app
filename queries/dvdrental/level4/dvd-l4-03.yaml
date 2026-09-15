@@ -1,0 +1,47 @@
+id: dvd-l4-03
+database: dvdrental
+level: 4
+title: "ABC-аналіз фільмів за часткою у сукупній виручці"
+business_question: >
+  Які фільми належать до групи A — тих, що разом формують 80% сукупної
+  виручки від оренди, і заслуговують на пріоритет при поповненні
+  інвентарю?
+sql_features: [abc_analysis, window_function, cte]
+description: >
+  Кумулятивна сума виручки, впорядкована за спаданням, ділена на
+  загальну суму, дає наростаючу частку — межі 80/95% ділять фільми на
+  групи A/B/C за один прохід віконними функціями.
+expected_insight: >
+  Найдорожчий за виручкою фільм формує лише частку відсотка від
+  загальної суми — типовий "довгий хвіст" популярності фільмів, коли
+  жоден окремий тайтл не домінує, а групу A формує значна частка всього
+  каталогу, а не жменька хітів.
+sql: |
+  WITH film_revenue AS (
+      SELECT f.title, SUM(p.amount) AS revenue
+      FROM payment p
+      JOIN rental r ON r.rental_id = p.rental_id
+      JOIN inventory i ON i.inventory_id = r.inventory_id
+      JOIN film f ON f.film_id = i.film_id
+      GROUP BY f.title
+  ),
+  ranked AS (
+      SELECT
+          title,
+          revenue,
+          SUM(revenue) OVER (ORDER BY revenue DESC) AS cumulative_revenue,
+          SUM(revenue) OVER () AS total_revenue
+      FROM film_revenue
+  )
+  SELECT
+      title,
+      revenue,
+      ROUND(cumulative_revenue / total_revenue * 100, 1) AS cumulative_share_pct,
+      CASE
+          WHEN cumulative_revenue / total_revenue <= 0.8 THEN 'A'
+          WHEN cumulative_revenue / total_revenue <= 0.95 THEN 'B'
+          ELSE 'C'
+      END AS abc_class
+  FROM ranked
+  ORDER BY revenue DESC
+  LIMIT 15;

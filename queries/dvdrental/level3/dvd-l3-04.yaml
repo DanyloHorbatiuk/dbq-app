@@ -1,0 +1,28 @@
+id: dvd-l3-04
+database: dvdrental
+level: 3
+title: "Три найновіші оренди кожного клієнта"
+business_question: >
+  Які три останні оренди зробив кожен клієнт?
+sql_features: [lateral, join_inner]
+description: >
+  LATERAL дозволяє підзапиту "3 останні оренди" звертатися до
+  customer_id зовнішнього клієнта й повертати одразу кілька рядків на
+  кожного — того, чого не досягти звичайним корельованим підзапитом у
+  списку стовпців.
+expected_insight: >
+  Для клієнтів з менш ніж трьома орендами LATERAL коректно поверне лише
+  наявні рядки, без помилок і порожніх заповнювачів — так само, як
+  аналогічний запит museum-l3-03 для відгуків на виставки.
+sql: |
+  SELECT c.customer_id, c.first_name, c.last_name, recent.rental_date
+  FROM customer c
+  CROSS JOIN LATERAL (
+      SELECT rental_date
+      FROM rental r
+      WHERE r.customer_id = c.customer_id
+      ORDER BY rental_date DESC
+      LIMIT 3
+  ) recent
+  ORDER BY c.customer_id, recent.rental_date DESC
+  LIMIT 15;

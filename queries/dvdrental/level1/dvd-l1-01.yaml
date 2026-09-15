@@ -1,0 +1,22 @@
+id: dvd-l1-01
+database: dvdrental
+level: 1
+title: "10 найдорожчих у прокаті фільмів"
+business_question: >
+  Які фільми мають найвищу ставку прокату (rental_rate) і скільки коштує
+  оренда кожного з них?
+sql_features: [where, order_by, limit]
+description: >
+  Найпростіший різновид запиту: фільтр за наявністю ставки, сортування за
+  спаданням і обмеження кількості рядків — базова комбінація, з якої
+  починається практично будь-яка аналітика.
+expected_insight: >
+  У dvdrental лише три можливі значення rental_rate (0.99 / 2.99 / 4.99),
+  тому серед топ-10 буде багато фільмів з однаковою ціною — ORDER BY
+  додає title як другий ключ для стабільного порядку.
+sql: |
+  SELECT title, rental_rate
+  FROM film
+  WHERE rental_rate IS NOT NULL
+  ORDER BY rental_rate DESC, title
+  LIMIT 10;

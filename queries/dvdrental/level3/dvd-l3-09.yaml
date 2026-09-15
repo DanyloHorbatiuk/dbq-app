@@ -1,0 +1,39 @@
+id: dvd-l3-09
+database: dvdrental
+level: 3
+title: "Актори в межах двох ступенів співгри від заданого актора"
+business_question: >
+  Які актори знімалися в одному фільмі з Penelope Guiness (1 ступінь), і
+  які знімалися в одному фільмі з тими акторами (2 ступінь)?
+sql_features: [recursive_cte, join_inner]
+description: >
+  Рекурсивна частина CTE на кожному кроці приєднує через film_actor
+  акторів, що знімались у тих самих фільмах, що й актори з попереднього
+  ступеня — типова BFS-подібна побудова графа "хто з ким перетинався",
+  на відміну від ієрархії "рівень-підрівень" (як-от museum-l1 для
+  типів артефактів).
+expected_insight: >
+  MIN(degree) після GROUP BY обов'язковий: той самий актор часто
+  досяжний кількома шляхами з різною довжиною (наприклад, і напряму, і
+  через третього актора) — без згортання за мінімумом один і той самий
+  actor_id з'явився б у результаті кілька разів з різним degree.
+sql: |
+  WITH RECURSIVE costars AS (
+      SELECT a.actor_id, a.first_name, a.last_name, 0 AS degree
+      FROM actor a
+      WHERE a.first_name = 'Penelope' AND a.last_name = 'Guiness'
+
+      UNION
+
+      SELECT a2.actor_id, a2.first_name, a2.last_name, c.degree + 1
+      FROM costars c
+      JOIN film_actor fa1 ON fa1.actor_id = c.actor_id
+      JOIN film_actor fa2 ON fa2.film_id = fa1.film_id
+      JOIN actor a2 ON a2.actor_id = fa2.actor_id
+      WHERE c.degree < 2
+  )
+  SELECT actor_id, first_name, last_name, MIN(degree) AS degree
+  FROM costars
+  GROUP BY actor_id, first_name, last_name
+  ORDER BY degree, last_name
+  LIMIT 20;

@@ -1,0 +1,20 @@
+id: dvd-l1-04
+database: dvdrental
+level: 1
+title: "Адреси без другого рядка"
+business_question: >
+  Які адреси в базі не мають заповненого другого рядка (address2), і як
+  показати це поле в інтерфейсі, якщо значення відсутнє?
+sql_features: [coalesce, where]
+description: >
+  COALESCE підставляє заповнювач замість NULL — без цього порожній
+  другий рядок адреси показувався б у звіті як буквальний "NULL".
+expected_insight: >
+  Лише 4 адреси з усієї таблиці мають NULL в address2 (решта — порожній
+  рядок '', що для COALESCE не є NULL) — тобто дані вже здебільшого
+  нормалізовані через порожній рядок, а не NULL.
+sql: |
+  SELECT address, COALESCE(address2, '—') AS address2
+  FROM address
+  WHERE address2 IS NULL
+  ORDER BY address;

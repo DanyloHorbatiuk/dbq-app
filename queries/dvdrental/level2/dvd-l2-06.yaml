@@ -1,0 +1,30 @@
+id: dvd-l2-06
+database: dvdrental
+level: 2
+title: "Актори, що знімались і в комедіях, і в драмах"
+business_question: >
+  Які актори з'являлися одночасно й у фільмах категорії Comedy, й у
+  фільмах категорії Drama?
+sql_features: [intersect]
+description: >
+  INTERSECT залишає лише рядки, що є в обох наборах одночасно — простіше
+  й читабельніше за еквівалентний варіант із подвійним EXISTS.
+expected_insight: >
+  118 акторів з 200 знімалися і в комедіях, і в драмах — типове акторське
+  амплуа в dvdrental не обмежене однією категорією, на відміну від
+  наївного припущення "комедійний актор ≠ драматичний актор".
+sql: |
+  SELECT a.actor_id, a.first_name, a.last_name
+  FROM actor a
+  JOIN film_actor fa ON fa.actor_id = a.actor_id
+  JOIN film_category fc ON fc.film_id = fa.film_id
+  JOIN category cat ON cat.category_id = fc.category_id
+  WHERE cat.name = 'Comedy'
+  INTERSECT
+  SELECT a.actor_id, a.first_name, a.last_name
+  FROM actor a
+  JOIN film_actor fa ON fa.actor_id = a.actor_id
+  JOIN film_category fc ON fc.film_id = fa.film_id
+  JOIN category cat ON cat.category_id = fc.category_id
+  WHERE cat.name = 'Drama'
+  ORDER BY last_name;

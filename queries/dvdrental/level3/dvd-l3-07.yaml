@@ -1,0 +1,29 @@
+id: dvd-l3-07
+database: dvdrental
+level: 3
+title: "Акторський склад фільму як JSON-масив"
+business_question: >
+  Який перелік акторів (ім'я й прізвище) знімався в кожному фільмі, у
+  вигляді одного JSON-значення на фільм?
+sql_features: [json_agg, aggregate, group_by, join_inner]
+description: >
+  json_agg разом із json_build_object збирає результат JOIN у масив
+  JSON-об'єктів по одному на групу — зручно, коли фронтенду потрібен
+  вкладений список акторів, а не плаский набір рядків "фільм-актор".
+expected_insight: >
+  Порядок акторів усередині масиву задається ORDER BY всередині самого
+  json_agg (за прізвищем), а не зовнішнім ORDER BY запиту — це два
+  незалежні впорядкування, які легко переплутати.
+sql: |
+  SELECT
+      f.title,
+      json_agg(
+          json_build_object('first_name', a.first_name, 'last_name', a.last_name)
+          ORDER BY a.last_name
+      ) AS actors
+  FROM film f
+  JOIN film_actor fa ON fa.film_id = f.film_id
+  JOIN actor a ON a.actor_id = fa.actor_id
+  GROUP BY f.title
+  ORDER BY f.title
+  LIMIT 10;

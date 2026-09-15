@@ -1,0 +1,26 @@
+id: dvd-l3-06
+database: dvdrental
+level: 3
+title: "Оренди за статусом повернення на одного співробітника"
+business_question: >
+  Скільки оренд обробив кожен співробітник, і скільки з них досі не
+  повернуті, а скільки вже повернуті — в одному рядку на співробітника?
+sql_features: [filter, aggregate, join_inner]
+description: >
+  COUNT(*) FILTER (WHERE ...) рахує умовну підмножину в межах тієї самої
+  агрегації, без окремого CASE-виразу всередині COUNT чи повторного
+  GROUP BY.
+expected_insight: >
+  Частка неповернутих оренд (return_date IS NULL) приблизно однакова для
+  обох співробітників — близько 1% від загальної кількості оброблених
+  оренд, що не вказує на проблему конкретно одного з них.
+sql: |
+  SELECT
+      s.first_name,
+      COUNT(*) AS total_rentals,
+      COUNT(*) FILTER (WHERE r.return_date IS NULL) AS not_returned,
+      COUNT(*) FILTER (WHERE r.return_date IS NOT NULL) AS returned
+  FROM rental r
+  JOIN staff s ON s.staff_id = r.staff_id
+  GROUP BY s.first_name
+  ORDER BY s.first_name;

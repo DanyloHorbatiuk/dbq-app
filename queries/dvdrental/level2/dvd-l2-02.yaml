@@ -1,0 +1,22 @@
+id: dvd-l2-02
+database: dvdrental
+level: 2
+title: "Фільми, відсутні в жодному магазині"
+business_question: >
+  Які фільми є в каталозі (таблиця film), але жодного примірника яких
+  немає в жодному з магазинів (немає рядка в inventory)?
+sql_features: [join_left]
+description: >
+  LEFT JOIN зберігає всі рядки film, навіть якщо для них немає жодного
+  відповідного рядка inventory — саме ці рядки з NULL по стороні
+  inventory і є шуканими "відсутніми в магазинах" фільмами.
+expected_insight: >
+  42 фільми з 1000 присутні лише в каталозі, але фізично відсутні в
+  жодному магазині — це фільми, які ніколи не можна буде здати в оренду,
+  доки для них не заведуть інвентар.
+sql: |
+  SELECT f.film_id, f.title, f.rental_rate
+  FROM film f
+  LEFT JOIN inventory i ON i.film_id = f.film_id
+  WHERE i.inventory_id IS NULL
+  ORDER BY f.title;

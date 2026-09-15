@@ -1,0 +1,18 @@
+id: dvd-l1-02
+database: dvdrental
+level: 1
+title: "Перелік вікових рейтингів фільмів"
+business_question: >
+  Які вікові рейтинги (MPAA) взагалі зустрічаються в каталозі фільмів?
+sql_features: [distinct]
+description: >
+  DISTINCT прибирає повтори значення одного стовпця по всій таблиці
+  фільмів — типовий перший крок перед побудовою фільтра чи довідника
+  значень для інтерфейсу.
+expected_insight: >
+  Рейтингів рівно п'ять (G, PG, PG-13, R, NC-17) — стандартна шкала
+  MPAA, що використовується як домен-тип mpaa_rating у самій схемі.
+sql: |
+  SELECT DISTINCT rating
+  FROM film
+  ORDER BY rating;

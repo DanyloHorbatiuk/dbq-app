@@ -1,0 +1,41 @@
+id: dvd-l4-01
+database: dvdrental
+level: 4
+title: "RFM-сегментація клієнтів"
+business_question: >
+  Яких клієнтів можна вважати найціннішими за давністю останнього
+  платежу, частотою платежів і сумою витрат?
+sql_features: [rfm_segmentation, window_function, cte]
+description: >
+  Класична RFM-модель (Recency/Frequency/Monetary), тут застосована до
+  справжніх іменованих клієнтів — на відміну від museum-l4-01, де
+  довелося сегментувати співробітників-продавців через відсутність
+  окремої сутності "клієнт" у тій схемі. NTILE(4) ділить клієнтів на
+  квартилі за кожним із трьох вимірів.
+expected_insight: >
+  Клієнт з низьким recency_tier (нещодавно платив) і високим
+  monetary_tier (витратив багато) — це "ідеальний" клієнт для утримання;
+  протилежна комбінація сигналізує про клієнта, що йде.
+sql: |
+  WITH customer_stats AS (
+      SELECT
+          c.customer_id, c.first_name, c.last_name,
+          MAX(p.payment_date)::date AS last_payment_date,
+          COUNT(*) AS frequency,
+          SUM(p.amount) AS monetary
+      FROM customer c
+      JOIN payment p ON p.customer_id = c.customer_id
+      GROUP BY c.customer_id, c.first_name, c.last_name
+  )
+  SELECT
+      first_name,
+      last_name,
+      (SELECT MAX(payment_date)::date FROM payment) - last_payment_date AS recency_days,
+      frequency,
+      monetary,
+      NTILE(4) OVER (ORDER BY (SELECT MAX(payment_date)::date FROM payment) - last_payment_date) AS recency_tier,
+      NTILE(4) OVER (ORDER BY frequency DESC) AS frequency_tier,
+      NTILE(4) OVER (ORDER BY monetary DESC) AS monetary_tier
+  FROM customer_stats
+  ORDER BY monetary DESC
+  LIMIT 15;

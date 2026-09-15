@@ -1,0 +1,27 @@
+id: dvd-l2-05
+database: dvdrental
+level: 2
+title: "Усі контактні e-mail персоналу й клієнтів одним списком"
+business_question: >
+  Який єдиний список унікальних e-mail-адрес — і персоналу, і клієнтів —
+  можна вивантажити для розсилки?
+sql_features: [union]
+description: >
+  UNION об'єднує результати двох незалежних SELECT з однаковою кількістю
+  й типами стовпців та прибирає дублікати між ними (на відміну від
+  UNION ALL) — тут дублікатів не очікується, бо персонал і клієнти не
+  перетинаються, але прибирання все одно застосовується.
+expected_insight: >
+  Персоналу лише двоє, тож переважна частина списку — клієнтські адреси;
+  для клієнтів без вказаного email (email IS NULL) рядок узагалі не
+  потрапить у результат, бо NULL не з'являється в списку унікальних
+  значень.
+sql: |
+  SELECT 'персонал' AS person_type, email
+  FROM staff
+  UNION
+  SELECT 'клієнт' AS person_type, email
+  FROM customer
+  WHERE email IS NOT NULL
+  ORDER BY person_type, email
+  LIMIT 20;

@@ -1,0 +1,35 @@
+id: dvd-l3-03
+database: dvdrental
+level: 3
+title: "Два найприбутковіші фільми в кожній категорії"
+business_question: >
+  Які два фільми принесли найбільшу виручку в межах кожної окремої
+  категорії?
+sql_features: [window_function, join_inner, group_by]
+description: >
+  RANK() OVER (PARTITION BY ... ORDER BY ...) нумерує фільми в межах
+  кожної категорії за виручкою — фільтр rnk <= 2 у зовнішньому запиті дає
+  "top-N у групі" без окремого підзапиту на кожну категорію.
+expected_insight: >
+  RANK (а не ROW_NUMBER) навмисно: якщо два фільми в одній категорії
+  дадуть однакову виручку, обидва отримають місце 1, а наступний фільм —
+  місце 3, а не 2 — це коректно відображає нічию, на відміну від
+  довільного розриву ROW_NUMBER.
+sql: |
+  SELECT category_name, title, revenue, rnk
+  FROM (
+      SELECT
+          cat.name AS category_name,
+          f.title,
+          SUM(p.amount) AS revenue,
+          RANK() OVER (PARTITION BY cat.name ORDER BY SUM(p.amount) DESC) AS rnk
+      FROM payment p
+      JOIN rental r ON r.rental_id = p.rental_id
+      JOIN inventory i ON i.inventory_id = r.inventory_id
+      JOIN film f ON f.film_id = i.film_id
+      JOIN film_category fc ON fc.film_id = f.film_id
+      JOIN category cat ON cat.category_id = fc.category_id
+      GROUP BY cat.name, f.title
+  ) ranked
+  WHERE rnk <= 2
+  ORDER BY category_name, rnk;

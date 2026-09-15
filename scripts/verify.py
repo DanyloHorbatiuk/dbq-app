@@ -31,11 +31,17 @@ async def main() -> int:
 
     print("=== SPEC.md §7 — критерії приймання ===\n")
 
-    readonly_pool = checks.pool_for(settings, "readonly")
-    admin_pool = checks.pool_for(settings, "admin")
-    await readonly_pool.open()
+    readonly_pools = {
+        database: checks.pool_for(settings, database, "readonly")
+        for database in ("museum", "dvdrental")
+    }
+    for pool in readonly_pools.values():
+        await pool.open()
+    admin_pool = checks.pool_for(
+        settings, "museum", "admin"
+    )  # only museum runs experiments
     await admin_pool.open()
-    db_ok = await checks.check_db_reachable(readonly_pool, report)
+    db_ok = await checks.check_db_reachable(readonly_pools, report)
 
     report.info("\n--- Звіт: каталог, покриття, обсяги, тести (§7.2) ---")
     checks.print_catalog_counts(catalog, report)
@@ -47,7 +53,7 @@ async def main() -> int:
         f"{coverage['covered_features']}/{coverage['total_features']}",
     )
     if db_ok:
-        table_sizes = await checks.fetch_table_sizes(readonly_pool)
+        table_sizes = await checks.fetch_table_sizes(readonly_pools)
         checks.write_table_sizes_csv(table_sizes)
     test_count, tests_passed = checks.run_test_suite()
     report.check(
@@ -58,7 +64,7 @@ async def main() -> int:
 
     report.info("\n--- Обсяги даних museum (§2.2.6, §7.3) ---")
     if db_ok:
-        await checks.check_museum_volumes(readonly_pool, report)
+        await checks.check_museum_volumes(readonly_pools["museum"], report)
     else:
         report.check("Обсяги даних museum", False, "БД недоступна")
 
@@ -81,14 +87,14 @@ async def main() -> int:
 
     report.info("\n--- Кожен запит каталогу виконується (§7.5) ---")
     if db_ok:
-        await checks.check_catalog_runs(catalog, readonly_pool, report)
+        await checks.check_catalog_runs(catalog, readonly_pools, report)
     else:
         report.check("Виконання каталогу", False, "БД недоступна")
 
     report.info("\n--- Експерименти з індексами (§ФВ-06, §7.6) ---")
     if db_ok:
         await checks.check_index_experiments(
-            catalog, admin_pool, readonly_pool, settings, report
+            catalog, admin_pool, readonly_pools["museum"], settings, report
         )
     else:
         report.check("Експерименти з індексами", False, "БД недоступна")
@@ -96,7 +102,8 @@ async def main() -> int:
     report.info("\n--- reports/benchmarks.csv (§7.7) ---")
     checks.check_benchmarks_csv(report)
 
-    await readonly_pool.close()
+    for pool in readonly_pools.values():
+        await pool.close()
     await admin_pool.close()
 
     print("\n=== Підсумок ===")

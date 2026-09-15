@@ -1,0 +1,22 @@
+id: dvd-l2-03
+database: dvdrental
+level: 2
+title: "Одиниці інвентарю, які ніколи не орендували"
+business_question: >
+  Які конкретні фізичні примірники (одиниці inventory) жодного разу не
+  здавалися в оренду?
+sql_features: [join_right]
+description: >
+  Той самий результат, що й LEFT JOIN з переставленими таблицями:
+  RIGHT JOIN rental до inventory зберігає кожен примірник, навіть якщо
+  для нього немає жодного рядка в rental.
+expected_insight: >
+  У цих даних лише одна одиниця інвентарю (inventory_id = 5) жодного разу
+  не орендувалась — рідкісний, але цілком реальний "мертвий" запас, який
+  варто перевірити на фізичну наявність.
+sql: |
+  SELECT i.inventory_id, i.film_id, i.store_id
+  FROM rental r
+  RIGHT JOIN inventory i ON i.inventory_id = r.inventory_id
+  WHERE r.rental_id IS NULL
+  ORDER BY i.inventory_id;

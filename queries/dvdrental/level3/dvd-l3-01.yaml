@@ -1,0 +1,28 @@
+id: dvd-l3-01
+database: dvdrental
+level: 3
+title: "Місячна виручка з проміжними й загальним підсумком"
+business_question: >
+  Яка виручка за кожен місяць, з проміжним підсумком за рік і загальним
+  підсумком по всій мережі?
+sql_features: [rollup, aggregate, date_function]
+description: >
+  ROLLUP додає ієрархічні підсумки (за роком і загалом) до звичайного
+  групування за роком+місяцем в одному проході по даних.
+expected_insight: >
+  payment_date у dvdrental сконцентрований у 2007 році (лютий-травень) —
+  на відміну від rental_date, що лежить у 2005-2006 роках; це відома
+  особливість набору даних: дати платежів були перегенеровані окремо від
+  дат оренди при створенні дампа.
+chart:
+  type: bar
+  x: month
+  y: [revenue]
+sql: |
+  SELECT
+      EXTRACT(YEAR FROM payment_date)::int AS year,
+      EXTRACT(MONTH FROM payment_date)::int AS month,
+      SUM(amount) AS revenue
+  FROM payment
+  GROUP BY ROLLUP (EXTRACT(YEAR FROM payment_date), EXTRACT(MONTH FROM payment_date))
+  ORDER BY year NULLS LAST, month NULLS LAST;

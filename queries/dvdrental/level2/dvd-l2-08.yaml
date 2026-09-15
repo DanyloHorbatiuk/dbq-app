@@ -1,0 +1,29 @@
+id: dvd-l2-08
+database: dvdrental
+level: 2
+title: "Клієнти з витратами вище середніх"
+business_question: >
+  Які клієнти витратили на оренду більше, ніж у середньому витрачає один
+  клієнт мережі?
+sql_features: [subquery_scalar, group_by, aggregate, having]
+description: >
+  Скалярний підзапит обчислює одне число — середню сумарну витрату на
+  клієнта — яке потім використовується в HAVING зовнішнього запиту як
+  поріг порівняння.
+expected_insight: >
+  Середня витрата рахується по вже згрупованих сумах (AVG від суми на
+  клієнта), а не по окремих платежах напряму — інакше "середнє" було б
+  середнім розміром одного платежу, а не середньою витратою клієнта, що
+  зовсім інша величина.
+sql: |
+  SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_spent
+  FROM customer c
+  JOIN payment p ON p.customer_id = c.customer_id
+  GROUP BY c.customer_id, c.first_name, c.last_name
+  HAVING SUM(p.amount) > (
+      SELECT AVG(customer_total) FROM (
+          SELECT SUM(amount) AS customer_total FROM payment GROUP BY customer_id
+      ) per_customer
+  )
+  ORDER BY total_spent DESC
+  LIMIT 15;

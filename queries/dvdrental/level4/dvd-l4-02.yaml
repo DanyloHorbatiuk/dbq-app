@@ -1,0 +1,37 @@
+id: dvd-l4-02
+database: dvdrental
+level: 4
+title: "Когортний аналіз клієнтів за місяцем першої оренди"
+business_question: >
+  Скільки клієнтів кожної когорти (за місяцем першої оренди) лишаються
+  активними в наступні місяці після свого першого візиту?
+sql_features: [cohort_analysis, cte, date_function]
+description: >
+  Когорта — місяць першої оренди кожного клієнта (MIN(rental_date));
+  "активність" виміряна як кількість унікальних клієнтів когорти, що
+  зробили хоча б одну оренду в кожен наступний місяць від старту.
+expected_insight: >
+  rental_date охоплює лише травень-серпень 2005 і крихітний хвіст у
+  лютому 2006 (182 рядки) — когорта травня 2005 єдина, що має довгий
+  "хвіст" спостережень (місяць 9), решта когорт обриваються значно
+  раніше просто тому, що в даних закінчуються дати оренди, а не тому,
+  що клієнти справді перестали повертатися.
+sql: |
+  WITH first_rental AS (
+      SELECT customer_id, MIN(date_trunc('month', rental_date))::date AS cohort_month
+      FROM rental
+      GROUP BY customer_id
+  ),
+  activity AS (
+      SELECT
+          fr.cohort_month,
+          (EXTRACT(YEAR FROM r.rental_date) - EXTRACT(YEAR FROM fr.cohort_month)) * 12
+              + (EXTRACT(MONTH FROM r.rental_date) - EXTRACT(MONTH FROM fr.cohort_month)) AS months_since_start,
+          r.customer_id
+      FROM rental r
+      JOIN first_rental fr ON fr.customer_id = r.customer_id
+  )
+  SELECT cohort_month, months_since_start, COUNT(DISTINCT customer_id) AS active_customers
+  FROM activity
+  GROUP BY cohort_month, months_since_start
+  ORDER BY cohort_month, months_since_start;

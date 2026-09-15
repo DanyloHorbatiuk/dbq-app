@@ -43,9 +43,10 @@ MIN_INDEX_EXPERIMENTS_WITH_SCAN_CHANGE = 5  # SPEC.md §7.6
 MIN_TESTS = 25  # SPEC.md §НФВ-07
 
 
-def pool_for(settings, role: str) -> AsyncConnectionPool:
+def pool_for(settings, database: str, role: str) -> AsyncConnectionPool:
+    db_name = settings.museum_db if database == "museum" else settings.dvdrental_db
     return AsyncConnectionPool(
-        conninfo=settings.conninfo(settings.museum_db, role),
+        conninfo=settings.conninfo(db_name, role),
         min_size=1,
         max_size=5,
         kwargs={"row_factory": dict_row, "autocommit": True},
@@ -53,15 +54,20 @@ def pool_for(settings, role: str) -> AsyncConnectionPool:
     )
 
 
-async def check_db_reachable(pool: AsyncConnectionPool, report: Report) -> bool:
-    try:
-        async with pool.connection() as conn:
-            await conn.execute("SELECT 1")
-    except Exception as exc:  # noqa: BLE001 - reporting, not handling
-        report.check("Розгортання: БД museum доступна", False, str(exc))
-        return False
-    report.check("Розгортання: БД museum доступна", True)
-    return True
+async def check_db_reachable(
+    pools: dict[str, AsyncConnectionPool], report: Report
+) -> bool:
+    ok = True
+    for database, pool in pools.items():
+        try:
+            async with pool.connection() as conn:
+                await conn.execute("SELECT 1")
+        except Exception as exc:  # noqa: BLE001 - reporting, not handling
+            report.check(f"Розгортання: БД {database} доступна", False, str(exc))
+            ok = False
+        else:
+            report.check(f"Розгортання: БД {database} доступна", True)
+    return ok
 
 
 def print_catalog_counts(catalog, report: Report) -> None:
@@ -96,20 +102,26 @@ def write_coverage_csv(coverage: dict) -> None:
                 )
 
 
-async def fetch_table_sizes(pool: AsyncConnectionPool) -> dict[str, str]:
-    async with pool.connection() as conn:
-        cur = await conn.execute(
-            """
-            SELECT n.nspname || '.' || c.relname AS table_name,
-                   pg_size_pretty(pg_total_relation_size(c.oid)) AS size
-            FROM pg_class c
-            JOIN pg_namespace n ON n.oid = c.relnamespace
-            WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-            ORDER BY pg_total_relation_size(c.oid) DESC
-            """
-        )
-        rows = await cur.fetchall()
-    return {r["table_name"]: r["size"] for r in rows}
+async def fetch_table_sizes(pools: dict[str, AsyncConnectionPool]) -> dict[str, str]:
+    # SPEC.md §8: table_sizes.csv covers "обидві бази" — every pool passed
+    # in gets queried, schema-qualified names (museum_network.* vs public.*)
+    # keep the two databases' tables from colliding in one flat dict.
+    sizes: dict[str, str] = {}
+    for pool in pools.values():
+        async with pool.connection() as conn:
+            cur = await conn.execute(
+                """
+                SELECT n.nspname || '.' || c.relname AS table_name,
+                       pg_size_pretty(pg_total_relation_size(c.oid)) AS size
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                ORDER BY pg_total_relation_size(c.oid) DESC
+                """
+            )
+            rows = await cur.fetchall()
+        sizes.update({r["table_name"]: r["size"] for r in rows})
+    return sizes
 
 
 def write_table_sizes_csv(table_sizes: dict[str, str]) -> None:
@@ -152,10 +164,11 @@ async def check_museum_volumes(pool: AsyncConnectionPool, report: Report) -> Non
 
 
 async def check_catalog_runs(
-    catalog, pool: AsyncConnectionPool, report: Report
+    catalog, pools: dict[str, AsyncConnectionPool], report: Report
 ) -> None:
     failures: list[str] = []
     for entry in catalog.values():
+        pool = pools[entry.database]
         cases = [(None, entry.sql)] + [(i, v.sql) for i, v in enumerate(entry.variants)]
         for label, sql_text in cases:
             try:

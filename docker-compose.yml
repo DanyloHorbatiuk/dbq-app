@@ -80,6 +80,16 @@ services:
       dockerfile: docker/Dockerfile.api
     container_name: saw-api
     restart: unless-stopped
+    # ./reports is a host bind mount (below); the image's baked-in "saw"
+    # user is uid:gid 10001:10001, which on Linux hosts is almost never
+    # the uid that actually owns a freshly cloned ./reports directory —
+    # benchmark/experiment runs that need to write there then fail with
+    # PermissionError even though GET/execute (read-only) works fine.
+    # Overriding to the host user's own uid:gid (see .env.example) makes
+    # every file the container writes there already owned by that user.
+    # Defaults to 10001:10001 (the image's own baked-in user) when unset,
+    # so nothing changes for anyone who doesn't hit this.
+    user: "${HOST_UID:-10001}:${HOST_GID:-10001}"
     depends_on:
       postgres:
         condition: service_healthy

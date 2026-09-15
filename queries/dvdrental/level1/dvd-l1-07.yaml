@@ -1,0 +1,19 @@
+id: dvd-l1-07
+database: dvdrental
+level: 1
+title: "Повне ім'я персоналу"
+business_question: >
+  Як показати ім'я і прізвище кожного співробітника одним полем для
+  випадного списку в інтерфейсі?
+sql_features: [string_function]
+description: >
+  Конкатенація (||) — найпоширеніша рядкова функція для об'єднання
+  кількох стовпців в один вивід.
+expected_insight: >
+  У dvdrental лише два співробітники (по одному на кожен з двох
+  магазинів) — цей запит зручно тестувати саме тому, що результат
+  повністю видно одразу, без LIMIT.
+sql: |
+  SELECT staff_id, first_name || ' ' || last_name AS full_name
+  FROM staff
+  ORDER BY staff_id;

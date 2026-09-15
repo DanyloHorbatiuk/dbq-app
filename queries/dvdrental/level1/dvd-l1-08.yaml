@@ -1,0 +1,21 @@
+id: dvd-l1-08
+database: dvdrental
+level: 1
+title: "10 фільмів з найдовшим описом"
+business_question: >
+  Які фільми мають найдовший текстовий опис (description) у картці
+  каталогу?
+sql_features: [string_function, order_by, limit]
+description: >
+  length() на текстовому стовпці — рядкова функція, застосована прямо
+  всередині ORDER BY, без потреби виносити її в окремий підзапит.
+expected_insight: >
+  Різниця між найдовшим і найкоротшим описом у dvdrental відносно
+  невелика (описи згенеровані шаблонно) — на реальних даних такий запит
+  частіше використовують, щоб знайти порожні чи підозріло короткі описи,
+  а не найдовші.
+sql: |
+  SELECT title, length(description) AS description_length
+  FROM film
+  ORDER BY description_length DESC
+  LIMIT 10;

@@ -1,0 +1,22 @@
+id: dvd-l3-05
+database: dvdrental
+level: 3
+title: "Медіанний і 90-й перцентиль розмір платежу"
+business_question: >
+  Яка медіанна сума одного платежу і яке значення відсікає верхні 10%
+  найбільших платежів?
+sql_features: [percentile_cont, aggregate]
+description: >
+  percentile_cont інтерполює значення між сусідніми рядками впорядкованого
+  набору — на відміну від AVG, стійкий до кількох аномально великих
+  платежів.
+expected_insight: >
+  Через те, що rental_rate набуває лише трьох фіксованих значень, а
+  amount у payment здебільшого дорівнює rental_rate (з рідкісними
+  штрафами), медіана й типове значення rental_rate майже збігаються —
+  штучний "плаский" розподіл, нетиповий для реальних платіжних даних.
+sql: |
+  SELECT
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY amount) AS median_amount,
+      percentile_cont(0.9) WITHIN GROUP (ORDER BY amount) AS p90_amount
+  FROM payment;

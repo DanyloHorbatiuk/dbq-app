@@ -1,0 +1,26 @@
+id: dvd-l3-02
+database: dvdrental
+level: 3
+title: "Виручка за магазином, за категорією й загалом"
+business_question: >
+  Яка виручка за кожним магазином окремо, яка виручка за кожною
+  категорією фільмів окремо і яка сукупна виручка мережі — одним
+  запитом?
+sql_features: [grouping_sets, aggregate, join_inner]
+description: >
+  GROUPING SETS обчислює три різні рівні групування (за магазином, за
+  категорією, підсумок без групування) за один прохід по даних, замість
+  трьох окремих запитів, об'єднаних UNION ALL.
+expected_insight: >
+  NULL у стовпці store_id чи category_name у результаті — не пропущені
+  дані, а позначка "цей рядок — підсумок по іншому вимірі" (той самий
+  принцип, що й у ROLLUP).
+sql: |
+  SELECT i.store_id, cat.name AS category_name, SUM(p.amount) AS revenue
+  FROM payment p
+  JOIN rental r ON r.rental_id = p.rental_id
+  JOIN inventory i ON i.inventory_id = r.inventory_id
+  JOIN film_category fc ON fc.film_id = i.film_id
+  JOIN category cat ON cat.category_id = fc.category_id
+  GROUP BY GROUPING SETS ((i.store_id), (cat.name), ())
+  ORDER BY i.store_id NULLS LAST, cat.name NULLS LAST;

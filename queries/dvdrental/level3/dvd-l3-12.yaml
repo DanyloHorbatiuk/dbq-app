@@ -1,0 +1,24 @@
+id: dvd-l3-12
+database: dvdrental
+level: 3
+title: "Інтервал між послідовними платежами клієнта"
+business_question: >
+  Скільки часу минає між двома послідовними платежами одного й того
+  самого клієнта?
+sql_features: [window_function]
+description: >
+  LAG() OVER (PARTITION BY customer_id ORDER BY payment_date) читає
+  значення попереднього рядка в межах того самого клієнта без
+  самоприєднання (self-join) таблиці до самої себе.
+expected_insight: >
+  Перший платіж кожного клієнта завжди отримує NULL у gap_since_previous
+  — для нього попереднього платежу просто не існує, і це очікувана,
+  а не помилкова поведінка LAG().
+sql: |
+  SELECT
+      customer_id,
+      payment_date,
+      payment_date - LAG(payment_date) OVER (PARTITION BY customer_id ORDER BY payment_date) AS gap_since_previous
+  FROM payment
+  ORDER BY customer_id, payment_date
+  LIMIT 15;

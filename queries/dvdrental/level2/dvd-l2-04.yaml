@@ -1,0 +1,43 @@
+id: dvd-l2-04
+database: dvdrental
+level: 2
+title: "Асортимент категорій: магазин 1 проти магазину 2"
+business_question: >
+  Скільки різних тайтлів кожної категорії є в магазині 1 і скільки — в
+  магазині 2, в одному звіті, навіть якщо якась категорія є лише в
+  одному з них?
+sql_features: [join_full, aggregate]
+description: >
+  FULL JOIN двох незалежно агрегованих підзапитів (по магазину 1 і по
+  магазину 2) об'єднує їх за назвою категорії, зберігаючи категорію,
+  навіть якщо вона існує лише в одного з магазинів — на відміну від
+  INNER JOIN, який просто відкинув би таку категорію.
+expected_insight: >
+  У цьому конкретному знімку даних обидва магазини мають хоча б один
+  тайтл у кожній з 16 категорій, тож NULL по жодній стороні не з'явиться
+  — але сам запит лишається коректним і показав би розрив, щойно
+  асортимент магазинів розійдеться.
+sql: |
+  SELECT
+      COALESCE(s1.category_name, s2.category_name) AS category_name,
+      s1.title_count AS store1_titles,
+      s2.title_count AS store2_titles
+  FROM (
+      SELECT cat.name AS category_name, COUNT(DISTINCT f.film_id) AS title_count
+      FROM film f
+      JOIN inventory i ON i.film_id = f.film_id
+      JOIN film_category fc ON fc.film_id = f.film_id
+      JOIN category cat ON cat.category_id = fc.category_id
+      WHERE i.store_id = 1
+      GROUP BY cat.name
+  ) s1
+  FULL JOIN (
+      SELECT cat.name AS category_name, COUNT(DISTINCT f.film_id) AS title_count
+      FROM film f
+      JOIN inventory i ON i.film_id = f.film_id
+      JOIN film_category fc ON fc.film_id = f.film_id
+      JOIN category cat ON cat.category_id = fc.category_id
+      WHERE i.store_id = 2
+      GROUP BY cat.name
+  ) s2 ON s2.category_name = s1.category_name
+  ORDER BY category_name;

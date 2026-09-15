@@ -1,0 +1,29 @@
+id: dvd-l2-01
+database: dvdrental
+level: 2
+title: "Виручка за категорією фільмів"
+business_question: >
+  Яка сукупна виручка від оренди фільмів кожної категорії?
+sql_features: [join_inner, group_by, aggregate]
+description: >
+  Виручка (payment) прив'язана до конкретної оренди (rental), оренда — до
+  одиниці інвентарю (inventory), інвентар — до фільму (film), а фільм —
+  до категорії через film_category: п'ять таблиць, з'єднаних INNER JOIN,
+  щоб дійти від грошей до категорії.
+expected_insight: >
+  Sports і Sci-Fi — категорії з найвищою сукупною виручкою, хоча кількість
+  фільмів у кожній категорії приблизно однакова: різницю дає не розмір
+  каталогу, а частота оренди конкретних тайтлів.
+chart:
+  type: bar
+  x: category_name
+  y: [revenue]
+sql: |
+  SELECT cat.name AS category_name, SUM(p.amount) AS revenue
+  FROM payment p
+  JOIN rental r ON r.rental_id = p.rental_id
+  JOIN inventory i ON i.inventory_id = r.inventory_id
+  JOIN film_category fc ON fc.film_id = i.film_id
+  JOIN category cat ON cat.category_id = fc.category_id
+  GROUP BY cat.name
+  ORDER BY revenue DESC;

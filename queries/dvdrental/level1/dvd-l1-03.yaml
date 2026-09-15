@@ -1,0 +1,28 @@
+id: dvd-l1-03
+database: dvdrental
+level: 1
+title: "Класифікація фільмів за тривалістю"
+business_question: >
+  Який фільм короткий, середній чи довгий за тривалістю показу — щоб
+  винести цю категорію у фільтр інтерфейсу без окремого довідника?
+sql_features: [case, order_by]
+description: >
+  CASE обчислює категорію "на льоту" з числового стовпця length —
+  найпростіший спосіб перетворити безперервну шкалу на кілька зрозумілих
+  груп без зміни схеми таблиці.
+expected_insight: >
+  Межі (60 і 120 хвилин) обрані довільно як умовний поріг — на реальному
+  проєкті їх варто звірити з розподілом length (MIN/MAX/AVG), а не
+  вгадувати.
+sql: |
+  SELECT
+      title,
+      length,
+      CASE
+          WHEN length < 60 THEN 'короткий'
+          WHEN length < 120 THEN 'середній'
+          ELSE 'довгий'
+      END AS length_class
+  FROM film
+  ORDER BY length
+  LIMIT 10;

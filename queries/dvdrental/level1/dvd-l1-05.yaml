@@ -1,0 +1,21 @@
+id: dvd-l1-05
+database: dvdrental
+level: 1
+title: "Фільми, випущені 2006 року"
+business_question: >
+  Які фільми в каталозі мають рік випуску 2006?
+sql_features: [where, limit]
+description: >
+  Фільтр за точним значенням числового/доменного стовпця (release_year —
+  домен year поверх integer) — найпростіша можлива форма WHERE.
+expected_insight: >
+  release_year в dvdrental майже не варіюється — переважна більшість
+  фільмів (усі 1000) датовані саме 2006 роком, тому цей фільтр практично
+  не звужує вибірку: варто перевіряти розподіл перед тим, як покладатися
+  на фільтр як на значущий бізнес-критерій.
+sql: |
+  SELECT title, release_year
+  FROM film
+  WHERE release_year = 2006
+  ORDER BY title
+  LIMIT 10;

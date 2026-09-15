@@ -1,0 +1,27 @@
+id: dvd-l3-11
+database: dvdrental
+level: 3
+title: "Виручка магазину порівняно із середньою по мережі"
+business_question: >
+  Яка виручка кожного магазину і як вона співвідноситься із середньою
+  виручкою по всій мережі з двох магазинів?
+sql_features: [cte, window_function]
+description: >
+  CTE рахує виручку на магазин один раз, а AVG(...) OVER () без
+  PARTITION BY додає до кожного рядка те саме середнє по всій вибірці —
+  дозволяє порівняти рядок із загальним середнім без окремого підзапиту.
+expected_insight: >
+  З лише двома магазинами середнє мережі майже точно посередині між
+  ними — на мережі з десятків магазинів AVG() OVER () був би куди
+  змістовнішим орієнтиром для виявлення відстаючих точок продажу.
+sql: |
+  WITH store_revenue AS (
+      SELECT i.store_id, SUM(p.amount) AS revenue
+      FROM payment p
+      JOIN rental r ON r.rental_id = p.rental_id
+      JOIN inventory i ON i.inventory_id = r.inventory_id
+      GROUP BY i.store_id
+  )
+  SELECT store_id, revenue, AVG(revenue) OVER () AS network_avg_revenue
+  FROM store_revenue
+  ORDER BY store_id;

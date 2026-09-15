@@ -1,0 +1,26 @@
+id: dvd-l2-07
+database: dvdrental
+level: 2
+title: "Фільми, доступні лише в магазині 1"
+business_question: >
+  Які тайтли є в асортименті магазину 1, але їх немає в магазині 2?
+sql_features: [except]
+description: >
+  EXCEPT віднімає від першого набору рядків (асортимент магазину 1) усе,
+  що зустрічається в другому наборі (асортимент магазину 2) — рядки, що
+  залишились, і є ексклюзивом магазину 1.
+expected_insight: >
+  196 тайтлів магазину 1 не мають жодного примірника в магазині 2 —
+  майже п'ята частина каталогу нерівномірно розподілена між двома
+  магазинами мережі.
+sql: |
+  SELECT DISTINCT f.title
+  FROM film f
+  JOIN inventory i ON i.film_id = f.film_id
+  WHERE i.store_id = 1
+  EXCEPT
+  SELECT DISTINCT f.title
+  FROM film f
+  JOIN inventory i ON i.film_id = f.film_id
+  WHERE i.store_id = 2
+  ORDER BY title;

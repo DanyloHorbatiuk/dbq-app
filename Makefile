@@ -8,7 +8,7 @@ export
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down restart reset logs ps psql-museum psql-dvd seed test lint fmt verify tools bench
+.PHONY: help up down restart reset logs ps psql-museum psql-dvd seed restore-dvd test lint fmt verify tools bench
 
 help: ## показати перелік команд
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -52,6 +52,14 @@ seed: ## перегенерувати тестові дані museum (без п�
 	$(COMPOSE) exec -e PGPASSWORD=$(SAW_ADMIN_PASSWORD) postgres \
 	  psql -v ON_ERROR_STOP=1 -U $(SAW_ADMIN_USER) -d $(MUSEUM_DB) \
 	  -f /db/museum/07_generate_data.sql
+
+restore-dvd: ## перевідновити dvdrental з db/dvdrental/dvdrental.tar (не чіпає museum)
+	$(COMPOSE) exec postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d postgres -c "DROP DATABASE IF EXISTS \"$$DVDRENTAL_DB\" WITH (FORCE)"'
+	$(COMPOSE) exec postgres bash /docker-entrypoint-initdb.d/20_databases.sh
+	$(COMPOSE) exec postgres bash /docker-entrypoint-initdb.d/30_restore_dvdrental.sh
+	$(COMPOSE) exec postgres bash /docker-entrypoint-initdb.d/50_grants.sh
+	$(COMPOSE) restart api
+	@echo "dvdrental перевідновлено. make psql-dvd -> SELECT count(*) FROM rental; має повернути 16044."
 
 test: ## прогнати тести
 	$(COMPOSE) exec api pytest -q

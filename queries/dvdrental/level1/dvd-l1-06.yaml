@@ -1,0 +1,22 @@
+id: dvd-l1-06
+database: dvdrental
+level: 1
+title: "Тривалість завершених оренд у днях"
+business_question: >
+  Скільки днів фактично тривала кожна вже завершена оренда (від видачі
+  до повернення)?
+sql_features: [date_function, where, order_by, limit]
+description: >
+  EXTRACT(DAY FROM ...) дістає ціле число днів із різниці двох
+  timestamp-значень — типова date-функція для обчислення тривалості.
+expected_insight: >
+  WHERE return_date IS NOT NULL обов'язковий: 183 оренди ще не повернуті
+  (return_date = NULL), і без цього фільтра різниця дат для них дала б
+  NULL замість тривалості.
+sql: |
+  SELECT rental_id, rental_date, return_date,
+      EXTRACT(DAY FROM return_date - rental_date) AS rental_days
+  FROM rental
+  WHERE return_date IS NOT NULL
+  ORDER BY rental_id
+  LIMIT 10;
