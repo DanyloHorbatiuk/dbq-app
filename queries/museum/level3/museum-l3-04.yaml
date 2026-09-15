@@ -1,0 +1,40 @@
+id: museum-l3-04
+database: museum
+level: 3
+title: "Виручка за залом, категорією й загалом в одному звіті"
+business_question: >
+  Яка виручка за кожним залом, яка виручка за кожною категорією
+  відвідувачів і яка сукупна виручка загалом — одним запитом?
+sql_features: [grouping_sets, aggregate]
+description: >
+  GROUPING SETS обчислює три різні рівні групування (за залом, за
+  категорією, підсумок без групування) за один прохід по даних.
+  Варіант дає той самий результат через три окремі GROUP BY,
+  об'єднані UNION ALL — багатослівніше й повільніше.
+expected_insight: >
+  NULL у стовпці hall_id чи visitor_type в результаті — не пропущені
+  дані, а позначка "цей рядок — підсумок по іншому вимірі".
+sql: |
+  SELECT e.hall_id, tp.visitor_type, SUM(tp.price * t.quantity) AS revenue
+  FROM museum_network.tickets t
+  JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+  JOIN museum_network.exhibitions e ON e.exhibition_id = tp.exhibition_id
+  GROUP BY GROUPING SETS ((e.hall_id), (tp.visitor_type), ())
+  ORDER BY e.hall_id NULLS LAST, tp.visitor_type NULLS LAST;
+variants:
+  - label: "через три GROUP BY, об'єднані UNION ALL"
+    sql: |
+      SELECT e.hall_id, NULL AS visitor_type, SUM(tp.price * t.quantity) AS revenue
+      FROM museum_network.tickets t
+      JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+      JOIN museum_network.exhibitions e ON e.exhibition_id = tp.exhibition_id
+      GROUP BY e.hall_id
+      UNION ALL
+      SELECT NULL, tp.visitor_type, SUM(tp.price * t.quantity)
+      FROM museum_network.tickets t
+      JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+      GROUP BY tp.visitor_type
+      UNION ALL
+      SELECT NULL, NULL, SUM(tp.price * t.quantity)
+      FROM museum_network.tickets t
+      JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id;

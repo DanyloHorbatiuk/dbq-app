@@ -1,0 +1,38 @@
+id: museum-l4-03
+database: museum
+level: 4
+title: "ABC-аналіз експонатів за часткою у сукупній страховій вартості"
+business_question: >
+  Які експонати належать до групи A — тих, що разом формують 80%
+  сукупної страхової вартості колекції, і потребують посиленого
+  контролю збереження?
+sql_features: [abc_analysis, window_function, cte]
+description: >
+  Кумулятивна сума страхової вартості, впорядкована за спаданням,
+  ділена на загальну суму, дає наростаючу частку — класична межа 80/95%
+  розбиває експонати на групи A/B/C без додаткових проходів по даних,
+  все обчислюється віконними функціями за один прохід.
+expected_insight: >
+  У колекції з "довгим хвостом" вартості групу A формує невелика частка
+  експонатів (типово 15-20%) — саме вони визначають сумарний страховий
+  ризик мережі.
+sql: |
+  WITH ranked AS (
+      SELECT
+          title,
+          insurance_value,
+          SUM(insurance_value) OVER (ORDER BY insurance_value DESC) AS cumulative_value,
+          SUM(insurance_value) OVER () AS total_value
+      FROM museum_network.exhibits
+  )
+  SELECT
+      title,
+      insurance_value,
+      ROUND(cumulative_value / total_value * 100, 1) AS cumulative_share_pct,
+      CASE
+          WHEN cumulative_value / total_value <= 0.8 THEN 'A'
+          WHEN cumulative_value / total_value <= 0.95 THEN 'B'
+          ELSE 'C'
+      END AS abc_class
+  FROM ranked
+  ORDER BY insurance_value DESC;

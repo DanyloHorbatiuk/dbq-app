@@ -1,0 +1,31 @@
+id: museum-l2-09
+database: museum
+level: 2
+title: "Експонати, дорожчі за середню страхову вартість колекції"
+business_question: >
+  Які експонати страхуються на суму, вищу за середню по всій
+  колекції?
+sql_features: [subquery_scalar, order_by]
+description: >
+  Скалярний підзапит обчислює одне число (середню вартість) і
+  порівнює з ним кожен рядок зовнішнього запиту. Варіант рахує те
+  саме середнє через віконну функцію AVG() OVER () — без окремого
+  підзапиту.
+expected_insight: >
+  Через "довгий хвіст" розподілу страхової вартості (Етап 3) частка
+  експонатів дорожчих за середнє — менша за 50 % рядків.
+sql: |
+  SELECT title, insurance_value
+  FROM museum_network.exhibits
+  WHERE insurance_value > (SELECT AVG(insurance_value) FROM museum_network.exhibits)
+  ORDER BY insurance_value DESC;
+variants:
+  - label: "через віконну функцію замість підзапиту"
+    sql: |
+      SELECT title, insurance_value
+      FROM (
+          SELECT title, insurance_value, AVG(insurance_value) OVER () AS avg_value
+          FROM museum_network.exhibits
+      ) sub
+      WHERE insurance_value > avg_value
+      ORDER BY insurance_value DESC;

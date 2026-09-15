@@ -1,0 +1,28 @@
+id: museum-l3-05
+database: museum
+level: 3
+title: "Виручка по роках і місяцях з проміжними підсумками"
+business_question: >
+  Яка виручка за кожен місяць кожного року, з проміжним підсумком за
+  рік і загальним підсумком?
+sql_features: [rollup, aggregate, date_function]
+description: >
+  ROLLUP додає ієрархічні проміжні підсумки (по року, і загалом) до
+  звичайного групування за роком+місяцем — саме те, що потрібно для
+  типового фінансового звіту.
+expected_insight: >
+  Рядок з NULL у місяці й заповненим роком — підсумок за весь рік;
+  рядок з NULL в обох — загальний підсумок за всі роки.
+chart:
+  type: bar
+  x: month
+  y: [revenue]
+sql: |
+  SELECT
+      EXTRACT(YEAR FROM t.purchase_date)::int AS year,
+      EXTRACT(MONTH FROM t.purchase_date)::int AS month,
+      SUM(tp.price * t.quantity) AS revenue
+  FROM museum_network.tickets t
+  JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+  GROUP BY ROLLUP (EXTRACT(YEAR FROM t.purchase_date), EXTRACT(MONTH FROM t.purchase_date))
+  ORDER BY year NULLS LAST, month NULLS LAST;

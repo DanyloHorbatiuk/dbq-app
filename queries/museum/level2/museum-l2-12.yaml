@@ -1,0 +1,24 @@
+id: museum-l2-12
+database: museum
+level: 2
+title: "Квитки на виставки у верхніх поверхах"
+business_question: >
+  Які квитки продані на виставки, що проходять у залах вище першого
+  поверху?
+sql_features: [in, join_inner]
+description: >
+  Підзапит спершу відбирає id потрібних залів, а зовнішній запит
+  фільтрує квитки через IN — типовий спосіб уникнути хардкоду
+  конкретних hall_id (CLAUDE.md).
+expected_insight: >
+  IN тут природніший за EXISTS, бо підзапит повертає готовий список
+  значень, а не перевіряє факт існування пов'язаного рядка.
+sql: |
+  SELECT t.ticket_id, e.name AS exhibition_name
+  FROM museum_network.tickets t
+  JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+  JOIN museum_network.exhibitions e ON e.exhibition_id = tp.exhibition_id
+  WHERE e.hall_id IN (
+      SELECT hall_id FROM museum_network.halls WHERE floor >= 2
+  )
+  ORDER BY t.ticket_id;

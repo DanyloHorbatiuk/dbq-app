@@ -1,0 +1,29 @@
+id: museum-l4-04
+database: museum
+level: 4
+title: "Три найцінніші експонати в кожному залі"
+business_question: >
+  Які три експонати з найвищою страховою вартістю виставлені в
+  кожному окремому залі?
+sql_features: [top_n_in_group, window_function]
+description: >
+  ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) нумерує експонати
+  всередині кожного залу окремо — фільтр rnk <= 3 дає "top-N у групі"
+  без окремого запиту чи циклу на кожен зал.
+expected_insight: >
+  Якщо один і той самий зал повторюється у топі всіх експонатів мережі —
+  це сигнал про нерівномірний розподіл цінних об'єктів між залами,
+  вартий уваги при плануванні страхування.
+sql: |
+  SELECT hall_name, title, insurance_value, rnk
+  FROM (
+      SELECT
+          h.name AS hall_name,
+          e.title,
+          e.insurance_value,
+          ROW_NUMBER() OVER (PARTITION BY h.hall_id ORDER BY e.insurance_value DESC) AS rnk
+      FROM museum_network.exhibits e
+      JOIN museum_network.halls h ON h.hall_id = e.hall_id
+  ) ranked
+  WHERE rnk <= 3
+  ORDER BY hall_name, rnk;

@@ -1,0 +1,28 @@
+id: museum-l4-05
+database: museum
+level: 4
+title: "Сезонність відвідуваності за місяцями року"
+business_question: >
+  У які місяці року музейна мережа приймає найбільше відвідувачів,
+  а в які — найменше?
+sql_features: [seasonality, aggregate, date_function]
+description: >
+  Групування за EXTRACT(MONTH FROM visit_date) об'єднує дані всіх років
+  в один 12-місячний профіль сезонності — потрібне саме для виявлення
+  повторюваного річного циклу, а не для тренду за конкретний рік.
+expected_insight: >
+  Дані згенеровані з навмисною сезонністю (більше відвідувачів влітку
+  та в грудні) — профіль має показати пік у ці місяці й провал
+  у міжсезоння.
+chart:
+  type: bar
+  x: month
+  y: [visitors]
+sql: |
+  SELECT
+      EXTRACT(MONTH FROM visit_date)::int AS month,
+      COUNT(*) AS tickets_count,
+      SUM(quantity) AS visitors
+  FROM museum_network.tickets
+  GROUP BY EXTRACT(MONTH FROM visit_date)
+  ORDER BY month;

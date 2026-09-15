@@ -1,0 +1,40 @@
+id: museum-l2-05
+database: museum
+level: 2
+title: "Типи експонатів: виставлялися проти реставрувалися"
+business_question: >
+  Які типи експонатів виставлялися, які реставрувалися, а де ці два
+  списки збігаються чи розходяться?
+sql_features: [join_full, group_by, aggregate]
+description: >
+  FULL JOIN двох незалежно згрупованих підзапитів дозволяє побачити
+  типи, що трапляються лише в одному з двох списків, без втрати
+  жодного боку (на відміну від INNER чи однобічного LEFT/RIGHT).
+expected_insight: >
+  Більшість типів трапляються в обох списках, але FULL JOIN явно
+  показує (через NULL у відповідному стовпці), якщо тип жодного разу
+  не реставрувався.
+chart:
+  type: bar
+  x: type_name
+  y: [exhibited_count, restored_count]
+sql: |
+  SELECT
+      COALESCE(displayed.type_name, restored.type_name) AS type_name,
+      displayed.exhibited_count,
+      restored.restored_count
+  FROM (
+      SELECT at.type_name, count(*) AS exhibited_count
+      FROM museum_network.exhibition_items ei
+      JOIN museum_network.exhibits e ON e.exhibit_id = ei.exhibit_id
+      JOIN museum_network.artifact_types at ON at.type_id = e.type_id
+      GROUP BY at.type_name
+  ) displayed
+  FULL JOIN (
+      SELECT at.type_name, count(*) AS restored_count
+      FROM museum_network.restorations r
+      JOIN museum_network.exhibits e ON e.exhibit_id = r.exhibit_id
+      JOIN museum_network.artifact_types at ON at.type_id = e.type_id
+      GROUP BY at.type_name
+  ) restored ON restored.type_name = displayed.type_name
+  ORDER BY type_name;

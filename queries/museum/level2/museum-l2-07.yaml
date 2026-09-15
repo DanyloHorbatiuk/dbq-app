@@ -1,0 +1,26 @@
+id: museum-l2-07
+database: museum
+level: 2
+title: "Виставки з продажами квитків і екскурсіями одночасно"
+business_question: >
+  Які виставки у червні 2024 мали одночасно і продані квитки, і
+  проведені екскурсії?
+sql_features: [intersect]
+description: >
+  INTERSECT залишає лише назви виставок, що трапляються в ОБОХ
+  підзапитах одночасно — без потреби писати JOIN двох агрегованих
+  наборів вручну.
+expected_insight: >
+  Перетин зазвичай значно вужчий за кожен з підзапитів окремо: не
+  кожна виставка з продажами квитків того місяця мала ще й екскурсію.
+sql: |
+  SELECT DISTINCT e.name
+  FROM museum_network.exhibitions e
+  JOIN museum_network.ticket_prices tp ON tp.exhibition_id = e.exhibition_id
+  JOIN museum_network.tickets t ON t.price_id = tp.price_id
+  WHERE t.visit_date BETWEEN DATE '2024-06-01' AND DATE '2024-06-30'
+  INTERSECT
+  SELECT DISTINCT e.name
+  FROM museum_network.exhibitions e
+  JOIN museum_network.guided_tours gt ON gt.exhibition_id = e.exhibition_id
+  WHERE gt.starts_at BETWEEN DATE '2024-06-01' AND DATE '2024-06-30';

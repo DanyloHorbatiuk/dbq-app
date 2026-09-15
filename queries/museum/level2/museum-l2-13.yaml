@@ -1,0 +1,26 @@
+id: museum-l2-13
+database: museum
+level: 2
+title: "Експонати, дорожчі за будь-яку давньоримську монету"
+business_question: >
+  Які експонати страхуються дорожче, ніж хоча б одна давньоримська
+  монета з колекції?
+sql_features: [any, join_inner]
+description: >
+  ANY порівнює insurance_value з кожним значенням підзапиту й
+  залишає рядок, якщо умова виконується хоча б для одного з них —
+  тобто "більше за мінімум із набору".
+expected_insight: >
+  Практично весь список експонатів пройде цей фільтр, якщо серед
+  монет є хоча б одна дешева — ANY тут набагато м'якіший критерій,
+  ніж ALL.
+sql: |
+  SELECT title, insurance_value
+  FROM museum_network.exhibits
+  WHERE insurance_value > ANY (
+      SELECT e2.insurance_value
+      FROM museum_network.exhibits e2
+      JOIN museum_network.artifact_types at ON at.type_id = e2.type_id
+      WHERE at.type_name = 'Ancient Coins'
+  )
+  ORDER BY insurance_value DESC;

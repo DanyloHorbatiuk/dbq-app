@@ -1,0 +1,43 @@
+id: museum-l4-02
+database: museum
+level: 4
+title: "Когортний аналіз відвідуваності за місяцем старту виставки"
+business_question: >
+  Як змінюється кількість відвідувачів виставки в наступні місяці після
+  її відкриття, залежно від того, якого місяця вона стартувала?
+sql_features: [cohort_analysis, cte, date_function]
+description: >
+  У musem-мережі немає повторних відвідувачів із власною ідентичністю,
+  тому когорта тут — не група клієнтів, а група виставок, що стартували
+  того самого місяця. "Утримання" виміряне як сумарна кількість
+  відвідувачів (SUM(quantity)) по місяцях від старту (months_since_start),
+  а не частка клієнтів, що повернулися — це коректна адаптація методу
+  під наявну схему.
+expected_insight: >
+  Якщо visitors стабільно спадає при зростанні months_since_start
+  для всіх когорт — це очікуваний природний спад інтересу до виставки
+  з часом, а не аномалія конкретної когорти.
+chart:
+  type: line
+  x: months_since_start
+  y: [visitors]
+sql: |
+  WITH exhibition_cohort AS (
+      SELECT exhibition_id, DATE_TRUNC('month', start_date)::date AS cohort_month
+      FROM museum_network.exhibitions
+  ),
+  ticket_activity AS (
+      SELECT
+          ec.cohort_month,
+          (EXTRACT(YEAR FROM t.visit_date) - EXTRACT(YEAR FROM ec.cohort_month)) * 12
+              + (EXTRACT(MONTH FROM t.visit_date) - EXTRACT(MONTH FROM ec.cohort_month)) AS months_since_start,
+          t.quantity
+      FROM museum_network.tickets t
+      JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+      JOIN exhibition_cohort ec ON ec.exhibition_id = tp.exhibition_id
+  )
+  SELECT cohort_month, months_since_start, SUM(quantity) AS visitors
+  FROM ticket_activity
+  WHERE months_since_start BETWEEN 0 AND 5
+  GROUP BY cohort_month, months_since_start
+  ORDER BY cohort_month, months_since_start;

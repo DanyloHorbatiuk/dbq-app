@@ -1,0 +1,27 @@
+id: museum-l3-03
+database: museum
+level: 3
+title: "Три найновіші відгуки на кожну виставку"
+business_question: >
+  Які три найновіші відгуки залишили відвідувачі для кожної окремої
+  виставки?
+sql_features: [lateral]
+description: >
+  LATERAL дозволяє підзапиту "3 найновіші відгуки" звертатися до
+  exhibition_id зовнішньої виставки й повертати одразу кілька рядків
+  на кожну — того, чого не досягти звичайним корельованим підзапитом
+  у списку стовпців (він повертає лише одне значення).
+expected_insight: >
+  Для виставок із меншою кількістю відгуків, ніж 3, LATERAL коректно
+  поверне лише наявні рядки — без помилок і порожніх заповнювачів.
+sql: |
+  SELECT e.name AS exhibition_name, fb.rating, fb.comment, fb.created_at
+  FROM museum_network.exhibitions e
+  CROSS JOIN LATERAL (
+      SELECT rating, comment, created_at
+      FROM museum_network.visitor_feedback f
+      WHERE f.exhibition_id = e.exhibition_id
+      ORDER BY created_at DESC
+      LIMIT 3
+  ) fb
+  ORDER BY e.name, fb.created_at DESC;

@@ -1,0 +1,22 @@
+id: museum-l2-04
+database: museum
+level: 2
+title: "Експонати, які ніколи не входили до жодної виставки"
+business_question: >
+  Які експонати з колекції жодного разу не виставлялися?
+sql_features: [join_right, where]
+description: >
+  Той самий результат, що дав би LEFT JOIN у зворотному порядку
+  таблиць, але записаний саме через RIGHT JOIN — щоб продемонструвати
+  цю форму синтаксису окремо.
+expected_insight: >
+  Частина колекції (5000 експонатів проти 33000+ зв'язків
+  "виставка-експонат") ніколи не потрапляла на виставку — резерв
+  фонду, а не показова частина.
+sql: |
+  SELECT e.exhibit_id, e.title
+  FROM museum_network.exhibition_items ei
+  RIGHT JOIN museum_network.exhibits e
+      ON e.exhibit_id = ei.exhibit_id
+  WHERE ei.exhibition_id IS NULL
+  ORDER BY e.exhibit_id;

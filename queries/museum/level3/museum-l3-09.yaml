@@ -1,0 +1,28 @@
+id: museum-l3-09
+database: museum
+level: 3
+title: "Склад виставки як JSON-масив експонатів"
+business_question: >
+  Який перелік експонатів (назва й тип) входить до кожної виставки,
+  у вигляді одного JSON-значення на виставку?
+sql_features: [json_agg, aggregate, group_by]
+description: >
+  json_agg разом із json_build_object збирає результат JOIN у масив
+  JSON-об'єктів по одному на групу — зручно для API-відповіді, коли
+  фронтенду потрібен вкладений список, а не плаский набір рядків.
+expected_insight: >
+  Порядок елементів усередині масиву визначається ORDER BY всередині
+  json_agg, а не зовнішнім ORDER BY запиту — це два незалежні впорядкування.
+sql: |
+  SELECT
+      e.name AS exhibition_name,
+      json_agg(
+          json_build_object('title', ex.title, 'type', at.type_name)
+          ORDER BY ex.title
+      ) AS exhibits
+  FROM museum_network.exhibitions e
+  JOIN museum_network.exhibition_items ei ON ei.exhibition_id = e.exhibition_id
+  JOIN museum_network.exhibits ex ON ex.exhibit_id = ei.exhibit_id
+  JOIN museum_network.artifact_types at ON at.type_id = ex.type_id
+  GROUP BY e.name
+  ORDER BY e.name;

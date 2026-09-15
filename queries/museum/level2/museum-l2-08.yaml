@@ -1,0 +1,31 @@
+id: museum-l2-08
+database: museum
+level: 2
+title: "Експонати, які ніколи не реставрували"
+business_question: >
+  Які експонати колекції жодного разу не проходили реставрацію?
+sql_features: [except]
+description: >
+  EXCEPT віднімає з повного списку експонатів тих, хто трапляється в
+  списку реставрованих — результат без ручного LEFT JOIN. Варіант
+  показує той самий результат через LEFT JOIN + IS NULL.
+expected_insight: >
+  Лише 3000 записів реставрації на 5000 експонатів — більшість
+  колекції жодного разу не реставрувалася, і EXCEPT показує це одним
+  запитом.
+sql: |
+  SELECT exhibit_id, title FROM museum_network.exhibits
+  EXCEPT
+  SELECT e.exhibit_id, e.title
+  FROM museum_network.exhibits e
+  JOIN museum_network.restorations r ON r.exhibit_id = e.exhibit_id
+  ORDER BY exhibit_id;
+variants:
+  - label: "через LEFT JOIN + IS NULL"
+    sql: |
+      SELECT e.exhibit_id, e.title
+      FROM museum_network.exhibits e
+      LEFT JOIN museum_network.restorations r
+          ON r.exhibit_id = e.exhibit_id
+      WHERE r.restoration_id IS NULL
+      ORDER BY e.exhibit_id;

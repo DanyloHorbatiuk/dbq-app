@@ -1,0 +1,26 @@
+id: museum-l3-07
+database: museum
+level: 3
+title: "Квитки за категорією з умовним підрахунком"
+business_question: >
+  Скільки всього квитків продано за категорією відвідувачів, і
+  скільки з них — онлайн та карткою, в одному рядку на категорію?
+sql_features: [filter, aggregate, group_by]
+description: >
+  COUNT(*) FILTER (WHERE ...) рахує умовну підмножину в межах тієї
+  самої агрегації, без потреби писати окремі CASE-вирази всередині
+  COUNT чи повторний GROUP BY.
+expected_insight: >
+  FILTER читається прозоріше за еквівалентний
+  COUNT(CASE WHEN ... THEN 1 END) — та сама відповідь, менше шуму в
+  тексті запиту.
+sql: |
+  SELECT
+      tp.visitor_type,
+      COUNT(*) AS total_tickets,
+      COUNT(*) FILTER (WHERE t.sales_channel = 'online') AS online_tickets,
+      COUNT(*) FILTER (WHERE t.payment_method = 'card') AS card_payments
+  FROM museum_network.tickets t
+  JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+  GROUP BY tp.visitor_type
+  ORDER BY tp.visitor_type;

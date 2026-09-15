@@ -1,0 +1,18 @@
+id: museum-l1-06
+database: museum
+level: 1
+title: "Унікальні комбінації каналу продажу й способу оплати"
+business_question: >
+  Які саме комбінації "канал продажу + спосіб оплати" зустрічаються
+  серед проданих квитків?
+sql_features: [distinct, order_by]
+description: >
+  Прибирає дублікати комбінацій через DISTINCT — простий спосіб
+  побачити повний перелік варіантів без ручного перерахування.
+expected_insight: >
+  Комбінацій рівно 9 (3 канали × 3 способи оплати) — усі можливі пари
+  справді трапляються в даних.
+sql: |
+  SELECT DISTINCT sales_channel, payment_method
+  FROM museum_network.tickets
+  ORDER BY sales_channel, payment_method;

@@ -1,0 +1,21 @@
+id: museum-l3-06
+database: museum
+level: 3
+title: "Виручка за способом оплати й каналом продажу — усі комбінації"
+business_question: >
+  Яка виручка за кожною окремою комбінацією способу оплати й каналу
+  продажу, а також за кожним із них окремо і загалом?
+sql_features: [cube, aggregate]
+description: >
+  CUBE обчислює виручку для всіх можливих комбінацій групування
+  двох стовпців одразу: (спосіб, канал), (лише спосіб), (лише
+  канал), і підсумок — 2² = 4 рівні групування в одному запиті.
+expected_insight: >
+  CUBE дає більше рядків, ніж ROLLUP для тих самих двох стовпців:
+  ROLLUP не додав би рядок "лише канал" без способу оплати.
+sql: |
+  SELECT t.payment_method, t.sales_channel, SUM(tp.price * t.quantity) AS revenue
+  FROM museum_network.tickets t
+  JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+  GROUP BY CUBE (t.payment_method, t.sales_channel)
+  ORDER BY t.payment_method NULLS LAST, t.sales_channel NULLS LAST;

@@ -1,0 +1,43 @@
+id: museum-l4-01
+database: museum
+level: 4
+title: "RFM-сегментація співробітників за активністю продажу квитків"
+business_question: >
+  Яких співробітників можна вважати найактивнішими продавцями квитків
+  за давністю останнього продажу, частотою продажів і сумою виручки?
+sql_features: [rfm_segmentation, window_function, cte]
+description: >
+  У museum-мережі немає окремої сутності "клієнт" — квиток не прив'язаний
+  до конкретного відвідувача, лише до співробітника, що його продав.
+  Тому класична RFM-модель (Recency/Frequency/Monetary) тут застосована
+  не до клієнтів, а до співробітників-продавців: NTILE(4) ділить їх на
+  квартилі за кожним із трьох вимірів.
+expected_insight: >
+  Співробітник із високим recency_tier (давно не продавав) та високим
+  monetary_tier (загалом продав багато) — кандидат, що "вигорає" або
+  переведений на іншу ділянку роботи; варто перевірити графік змін.
+sql: |
+  WITH staff_sales AS (
+      SELECT
+          s.staff_id,
+          s.first_name,
+          s.last_name,
+          MAX(t.purchase_date)::date AS last_sale_date,
+          COUNT(*) AS frequency,
+          SUM(tp.price * t.quantity) AS monetary
+      FROM museum_network.staff s
+      JOIN museum_network.tickets t ON t.staff_id = s.staff_id
+      JOIN museum_network.ticket_prices tp ON tp.price_id = t.price_id
+      GROUP BY s.staff_id, s.first_name, s.last_name
+  )
+  SELECT
+      first_name,
+      last_name,
+      (CURRENT_DATE - last_sale_date) AS recency_days,
+      frequency,
+      monetary,
+      NTILE(4) OVER (ORDER BY (CURRENT_DATE - last_sale_date)) AS recency_tier,
+      NTILE(4) OVER (ORDER BY frequency DESC) AS frequency_tier,
+      NTILE(4) OVER (ORDER BY monetary DESC) AS monetary_tier
+  FROM staff_sales
+  ORDER BY monetary DESC;

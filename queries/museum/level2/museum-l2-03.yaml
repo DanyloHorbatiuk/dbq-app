@@ -1,0 +1,32 @@
+id: museum-l2-03
+database: museum
+level: 2
+title: "Працівники, які ніколи не продавали квитки"
+business_question: >
+  Хто з працівників жодного разу не оформлював продаж квитка?
+sql_features: [join_left, where]
+description: >
+  Знаходить працівників без жодного відповідного рядка в tickets через
+  LEFT JOIN і перевірку IS NULL на стороні "багато". Варіант
+  демонструє ту саму відповідь через NOT EXISTS.
+expected_insight: >
+  Продають квитки переважно касири — інші посади (екскурсовод, служба
+  безпеки, реставратор, куратор, адміністратор) у цій вибірці
+  закономірно відсутні серед продавців.
+sql: |
+  SELECT s.first_name, s.last_name, s.position
+  FROM museum_network.staff s
+  LEFT JOIN museum_network.tickets t
+      ON t.staff_id = s.staff_id
+  WHERE t.ticket_id IS NULL
+  ORDER BY s.last_name;
+variants:
+  - label: "через NOT EXISTS"
+    sql: |
+      SELECT s.first_name, s.last_name, s.position
+      FROM museum_network.staff s
+      WHERE NOT EXISTS (
+          SELECT 1 FROM museum_network.tickets t
+          WHERE t.staff_id = s.staff_id
+      )
+      ORDER BY s.last_name;

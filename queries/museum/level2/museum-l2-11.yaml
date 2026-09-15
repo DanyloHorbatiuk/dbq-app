@@ -1,0 +1,28 @@
+id: museum-l2-11
+database: museum
+level: 2
+title: "Працівники, які хоч раз продавали квитки"
+business_question: >
+  Хто з працівників хоча б раз оформлював продаж квитка?
+sql_features: [exists, order_by]
+description: >
+  EXISTS зупиняється на першому знайденому збігу — не рахує, скільки
+  саме квитків продав кожен працівник, лише перевіряє сам факт.
+  Варіант показує той самий результат через IN.
+expected_insight: >
+  Доповнює museum-l2-03 (протилежне питання) — разом обидва запити
+  дають повний розподіл персоналу на "продавців" і "непродавців".
+sql: |
+  SELECT s.first_name, s.last_name, s.position
+  FROM museum_network.staff s
+  WHERE EXISTS (
+      SELECT 1 FROM museum_network.tickets t WHERE t.staff_id = s.staff_id
+  )
+  ORDER BY s.last_name;
+variants:
+  - label: "через IN"
+    sql: |
+      SELECT s.first_name, s.last_name, s.position
+      FROM museum_network.staff s
+      WHERE s.staff_id IN (SELECT t.staff_id FROM museum_network.tickets t)
+      ORDER BY s.last_name;

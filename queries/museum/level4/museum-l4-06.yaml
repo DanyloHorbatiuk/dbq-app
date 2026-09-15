@@ -1,0 +1,38 @@
+id: museum-l4-06
+database: museum
+level: 4
+title: "Аномальні дні за кількістю відвідувачів (z-оцінка)"
+business_question: >
+  Які дні мають кількість відвідувачів, що суттєво відхиляється від
+  типового рівня — більш ніж на 2 стандартних відхилення від середнього?
+sql_features: [anomaly_detection, window_function, cte]
+description: >
+  Z-оцінка ((x - AVG) / STDDEV), обчислена віконними функціями без
+  GROUP BY, дозволяє порівняти кожен день із загальним розподілом за
+  один прохід і виявити викиди — дні аномально високого чи низького
+  напливу відвідувачів, які варто дослідити окремо (свято, негода,
+  збій системи продажу).
+expected_insight: >
+  Додатний z-score — аномально людний день (можливо, безкоштовний вхід
+  чи подія), від'ємний — аномально порожній (технічний збій чи форс-мажор).
+sql: |
+  WITH daily_sales AS (
+      SELECT visit_date, SUM(quantity) AS visitors
+      FROM museum_network.tickets
+      GROUP BY visit_date
+  ),
+  stats AS (
+      SELECT
+          visit_date,
+          visitors,
+          AVG(visitors) OVER () AS avg_visitors,
+          STDDEV(visitors) OVER () AS stddev_visitors
+      FROM daily_sales
+  )
+  SELECT
+      visit_date,
+      visitors,
+      ROUND((visitors - avg_visitors) / NULLIF(stddev_visitors, 0), 2) AS z_score
+  FROM stats
+  WHERE ABS(visitors - avg_visitors) > 2 * stddev_visitors
+  ORDER BY z_score DESC;

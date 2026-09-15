@@ -1,0 +1,20 @@
+id: museum-l3-08
+database: museum
+level: 3
+title: "Медіана та 90-й перцентиль страхової вартості експонатів"
+business_question: >
+  Яка медіанна страхова вартість експоната і яке значення відсікає
+  верхні 10% найдорожчих експонатів?
+sql_features: [percentile_cont, aggregate]
+description: >
+  percentile_cont інтерполює значення між сусідніми рядками впорядкованого
+  набору — на відміну від AVG, він стійкий до кількох аномально дорогих
+  експонатів і краще описує "типове" значення.
+expected_insight: >
+  Якщо медіана істотно менша за середнє (AVG), розподіл вартості має
+  "довгий хвіст" — кілька дуже дорогих експонатів тягнуть середнє вгору.
+sql: |
+  SELECT
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY insurance_value) AS median_value,
+      percentile_cont(0.9) WITHIN GROUP (ORDER BY insurance_value) AS p90_value
+  FROM museum_network.exhibits;

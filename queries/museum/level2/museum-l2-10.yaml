@@ -1,0 +1,56 @@
+id: museum-l2-10
+database: museum
+level: 2
+title: "Виставки з виручкою вищою за середню по своєму залу"
+business_question: >
+  Які виставки заробили більше за середню виручку серед виставок у
+  тому самому залі?
+sql_features: [subquery_correlated, join_inner]
+description: >
+  Корельований підзапит повторно звертається до hall_id зовнішнього
+  рядка для кожної виставки — класичний спосіб порівняти рядок із
+  середнім по його ж групі. Варіант виконує те саме через
+  AVG() OVER (PARTITION BY hall_id) за один прохід — пряме порівняння
+  двох формулювань для аналізу плану.
+expected_insight: >
+  Обидва формулювання виходять від однієї й тієї самої проміжної CTE
+  з виручкою за виставку — різниця лише в тому, як шукається середнє
+  по залу: повторний скалярний підзапит по кожному рядку проти
+  однопрохідної віконної функції. Ця різниця добре видна в плані
+  виконання (Етап 7): повторний Subquery Scan проти єдиного WindowAgg.
+sql: |
+  WITH exhibition_revenue AS (
+      SELECT e.exhibition_id, e.name, e.hall_id,
+          SUM(tp.price * t.quantity) AS revenue
+      FROM museum_network.exhibitions e
+      JOIN museum_network.ticket_prices tp ON tp.exhibition_id = e.exhibition_id
+      JOIN museum_network.tickets t ON t.price_id = tp.price_id
+      GROUP BY e.exhibition_id, e.name, e.hall_id
+  )
+  SELECT er.name, er.hall_id, er.revenue
+  FROM exhibition_revenue er
+  WHERE er.revenue > (
+      SELECT AVG(er2.revenue)
+      FROM exhibition_revenue er2
+      WHERE er2.hall_id = er.hall_id
+  )
+  ORDER BY er.revenue DESC;
+variants:
+  - label: "через віконну функцію AVG() OVER (PARTITION BY)"
+    sql: |
+      WITH exhibition_revenue AS (
+          SELECT e.exhibition_id, e.name, e.hall_id,
+              SUM(tp.price * t.quantity) AS revenue
+          FROM museum_network.exhibitions e
+          JOIN museum_network.ticket_prices tp ON tp.exhibition_id = e.exhibition_id
+          JOIN museum_network.tickets t ON t.price_id = tp.price_id
+          GROUP BY e.exhibition_id, e.name, e.hall_id
+      )
+      SELECT name, hall_id, revenue
+      FROM (
+          SELECT name, hall_id, revenue,
+              AVG(revenue) OVER (PARTITION BY hall_id) AS hall_avg_revenue
+          FROM exhibition_revenue
+      ) sub
+      WHERE revenue > hall_avg_revenue
+      ORDER BY revenue DESC;

@@ -1,0 +1,24 @@
+id: museum-l2-06
+database: museum
+level: 2
+title: "Хронологія подій за конкретний день"
+business_question: >
+  Які продажі квитків і початки екскурсій відбулися протягом
+  конкретного дня, в єдиній хронологічній стрічці?
+sql_features: [union, order_by]
+description: >
+  Об'єднує два структурно різні джерела подій (продаж квитка, старт
+  екскурсії) в один результат через UNION, позначаючи тип події
+  окремим стовпцем.
+expected_insight: >
+  UNION (а не UNION ALL) тут доречний — прибирає можливі повні
+  дублікати рядків, хоча в цих даних вони і так малоймовірні.
+sql: |
+  SELECT 'ticket_sale' AS event_type, purchase_date AS event_time, ticket_id AS event_id
+  FROM museum_network.tickets
+  WHERE purchase_date::date = DATE '2024-06-15'
+  UNION
+  SELECT 'tour_start' AS event_type, starts_at AS event_time, tour_id AS event_id
+  FROM museum_network.guided_tours
+  WHERE starts_at::date = DATE '2024-06-15'
+  ORDER BY event_time;
