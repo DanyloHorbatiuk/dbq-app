@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SQL Analytics Workbench</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header id="app-header">
+    <h1>SQL Analytics Workbench</h1>
+    <div id="header-badges" class="badges"></div>
+  </header>
+
+  <nav class="tabs" id="main-tabs">
+    <button class="tab-btn active" data-tab="catalog">Каталог запитів</button>
+    <button class="tab-btn" data-tab="sql">Довільний SQL</button>
+    <button class="tab-btn" data-tab="experiments">Експерименти з індексами</button>
+    <button class="tab-btn" data-tab="schema">Структура БД</button>
+  </nav>
+
+  <main id="tab-catalog" class="tab-panel active">
+    <div class="layout">
+      <aside id="catalog-sidebar">
+        <div class="filters">
+          <label>База
+            <select id="filter-database">
+              <option value="museum">museum</option>
+              <option value="dvdrental">dvdrental</option>
+            </select>
+          </label>
+          <label>Рівень
+            <select id="filter-level">
+              <option value="">усі</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </label>
+          <label>Можливість SQL
+            <select id="filter-feature">
+              <option value="">усі</option>
+            </select>
+          </label>
+          <input id="filter-search" type="search" placeholder="Пошук за назвою чи питанням…" />
+        </div>
+        <div id="catalog-tree" class="catalog-tree"></div>
+      </aside>
+
+      <section id="query-panel" class="query-panel">
+        <div id="query-empty" class="empty-state">Оберіть запит зі списку ліворуч.</div>
+        <div id="query-detail" hidden>
+          <h2 id="query-title"></h2>
+          <p id="query-business-question" class="business-question"></p>
+          <p id="query-description" class="muted"></p>
+          <p id="query-expected-insight" class="muted"></p>
+          <div id="query-features" class="badges"></div>
+
+          <div class="query-controls">
+            <label id="variant-label" hidden>Формулювання
+              <select id="query-variant"></select>
+            </label>
+            <div id="query-parameters" class="parameters"></div>
+          </div>
+
+          <pre id="query-sql" class="sql-block"></pre>
+
+          <div class="action-row">
+            <button id="btn-execute" class="primary">Виконати</button>
+            <button id="btn-plan">План</button>
+            <button id="btn-benchmark">Бенчмарк</button>
+          </div>
+
+          <div id="query-result" class="result-container"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <main id="tab-sql" class="tab-panel">
+    <div class="sql-console">
+      <div class="sql-console-controls">
+        <label>База
+          <select id="sql-database">
+            <option value="museum">museum</option>
+            <option value="dvdrental">dvdrental</option>
+          </select>
+        </label>
+        <span class="muted">Дозволено лише SELECT / WITH / TABLE / VALUES / EXPLAIN, один оператор, READ ONLY.</span>
+      </div>
+      <textarea id="sql-text" rows="8" spellcheck="false"
+        placeholder="SELECT * FROM museum_network.exhibitions LIMIT 10;"></textarea>
+      <div class="action-row">
+        <button id="sql-btn-execute" class="primary">Виконати</button>
+        <button id="sql-btn-plan">План</button>
+        <button id="sql-btn-benchmark">Бенчмарк</button>
+      </div>
+      <div id="sql-result" class="result-container"></div>
+    </div>
+  </main>
+
+  <main id="tab-experiments" class="tab-panel">
+    <div class="experiments-layout">
+      <div id="experiments-list" class="experiments-list"></div>
+      <div id="experiment-result" class="experiment-result">
+        <div class="empty-state">Оберіть експеримент і натисніть «Запустити».</div>
+      </div>
+    </div>
+  </main>
+
+  <main id="tab-schema" class="tab-panel">
+    <div class="schema-layout">
+      <label>База
+        <select id="schema-database">
+          <option value="museum">museum</option>
+          <option value="dvdrental">dvdrental</option>
+        </select>
+      </label>
+      <div id="schema-tree" class="schema-tree"></div>
+    </div>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
