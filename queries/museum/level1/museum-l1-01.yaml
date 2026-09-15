@@ -1,0 +1,35 @@
+id: museum-l1-01
+database: museum
+level: 1
+title: "Топ-10 найцінніших експонатів колекції"
+business_question: >
+  Які експонати мають найвищу страхову вартість і потребують посиленої
+  охорони чи окремого режиму зберігання?
+sql_features: [where, order_by, limit, case, coalesce]
+description: >
+  Вибирає 10 експонатів з найвищою страховою вартістю серед тих, що зараз
+  не перебувають на реставрації, і відносить кожен до цінової категорії.
+expected_insight: >
+  Найдорожчі експонати зазвичай складають лише кілька відсотків колекції,
+  але левову частку сукупної страхової вартості — база для ABC-аналізу
+  на 4-му рівні.
+chart:
+  type: bar
+  x: title
+  y: [insurance_value]
+sql: |
+  SELECT
+      e.title,
+      e.condition_status,
+      COALESCE(e.creation_year::TEXT, 'невідомо') AS creation_year,
+      e.insurance_value,
+      -- Проста цінова категоризація для швидкого візуального орієнтира.
+      CASE
+          WHEN e.insurance_value >= 500000 THEN 'особливо цінний'
+          WHEN e.insurance_value >= 100000 THEN 'цінний'
+          ELSE 'стандартний'
+      END AS value_tier
+  FROM museum_network.exhibits e
+  WHERE e.condition_status <> 'under_restoration'
+  ORDER BY e.insurance_value DESC
+  LIMIT 10;

@@ -1,0 +1,32 @@
+id: museum-l2-01
+database: museum
+level: 2
+title: "Виручка за категоріями відвідувачів"
+business_question: >
+  Яка категорія відвідувачів (дорослі, студенти, діти, пенсіонери)
+  приносить найбільшу виручку від продажу квитків?
+sql_features: [join_inner, group_by, having, aggregate, order_by]
+description: >
+  З'єднує продані квитки з тарифами, що діяли на момент продажу, і сумує
+  виручку за категорією відвідувача з урахуванням кількості квитків
+  в одному записі продажу.
+expected_insight: >
+  Дорослі відвідувачі зазвичай формують основну частку виручки навіть
+  якщо кількість проданих квитків студентам і дітям порівнянна.
+chart:
+  type: pie
+  x: visitor_type
+  y: [total_revenue]
+sql: |
+  SELECT
+      tp.visitor_type,
+      COUNT(*) AS tickets_sold,
+      SUM(tp.price * t.quantity) AS total_revenue
+  FROM museum_network.tickets t
+  JOIN museum_network.ticket_prices tp
+      ON tp.price_id = t.price_id
+  GROUP BY tp.visitor_type
+  -- Відсікає категорії з нульовою виручкою (немає проданих квитків) —
+  -- демонструє HAVING окремо від WHERE, яке тут не застосовне.
+  HAVING SUM(tp.price * t.quantity) > 0
+  ORDER BY total_revenue DESC;

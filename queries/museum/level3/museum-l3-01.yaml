@@ -1,0 +1,45 @@
+id: museum-l3-01
+database: museum
+level: 3
+title: "Повна ієрархія типів експонатів"
+business_question: >
+  Яка повна класифікаційна ланка (від найзагальнішого домену до
+  найвужчого типу) існує для кожного типу експонатів у довіднику?
+sql_features: [cte, recursive_cte]
+description: >
+  Рекурсивно піднімається від кореневих доменів (parent_type_id IS NULL)
+  до листових типів, будуючи для кожного рядка повний шлях у ієрархії.
+expected_insight: >
+  Ієрархія на 3 рівні (домен → підтип → листовий тип) дозволяє
+  аналізувати колекцію і на грубому, і на детальному рівні класифікації
+  без дублювання даних (3НФ довідника artifact_types).
+chart:
+  type: none
+sql: |
+  WITH RECURSIVE type_tree AS (
+      -- Базовий випадок: кореневі домени без батька.
+      SELECT
+          type_id,
+          type_name,
+          parent_type_id,
+          1 AS depth,
+          type_name::TEXT AS full_path
+      FROM museum_network.artifact_types
+      WHERE parent_type_id IS NULL
+
+      UNION ALL
+
+      -- Рекурсивний крок: приєднуємо дітей до вже побудованого шляху.
+      SELECT
+          t.type_id,
+          t.type_name,
+          t.parent_type_id,
+          tt.depth + 1,
+          tt.full_path || ' > ' || t.type_name
+      FROM museum_network.artifact_types t
+      JOIN type_tree tt
+          ON t.parent_type_id = tt.type_id
+  )
+  SELECT depth, full_path
+  FROM type_tree
+  ORDER BY full_path;

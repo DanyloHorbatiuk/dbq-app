@@ -1,0 +1,43 @@
+id: museum-l3-02
+database: museum
+level: 3
+title: "Накопичена частка виручки за виставками"
+business_question: >
+  Скільки найпопулярніших виставок формують більшість сукупної виручки
+  музею?
+sql_features: [cte, window_function, aggregate]
+description: >
+  Обчислює виручку за кожною виставкою, а віконна функція SUM() OVER
+  рахує накопичену суму й частку від загальної виручки без
+  корельованого підзапиту на кожен рядок.
+expected_insight: >
+  Розподіл має вигляд «довгого хвоста»: невелика кількість виставок
+  формує більшість виручки, решта дає значно менше — навмисно закладено
+  в генератор даних (Етап 3, популярність виставок).
+chart:
+  type: line
+  x: exhibition_title
+  y: [revenue]
+  secondary_y: cumulative_share_pct
+sql: |
+  WITH exhibition_revenue AS (
+      SELECT
+          e.name AS exhibition_title,
+          SUM(tp.price * t.quantity) AS revenue
+      FROM museum_network.tickets t
+      JOIN museum_network.ticket_prices tp
+          ON tp.price_id = t.price_id
+      JOIN museum_network.exhibitions e
+          ON e.exhibition_id = tp.exhibition_id
+      GROUP BY e.name
+  )
+  SELECT
+      exhibition_title,
+      revenue,
+      SUM(revenue) OVER (ORDER BY revenue DESC) AS cumulative_revenue,
+      ROUND(
+          SUM(revenue) OVER (ORDER BY revenue DESC) / SUM(revenue) OVER () * 100,
+          1
+      ) AS cumulative_share_pct
+  FROM exhibition_revenue
+  ORDER BY revenue DESC;

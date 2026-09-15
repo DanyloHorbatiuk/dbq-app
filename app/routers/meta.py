@@ -1,9 +1,13 @@
-"""System/meta endpoints — SPEC.md §ФВ-11 and ROADMAP.md Etap 4:
-GET /api/health, GET /api/meta/server-info, GET /api/meta/schema.
+"""System/meta endpoints — SPEC.md §ФВ-11 and ROADMAP.md Etap 4/5:
+GET /api/health, GET /api/meta/server-info, GET /api/meta/schema,
+GET /api/meta/coverage.
 
 One router with explicit paths (not a shared prefix) because /api/health
 and /api/meta/* sit at different depths under the app-level "/api"
-prefix set in main.py.
+prefix set in main.py. /api/meta/coverage lives here rather than in
+routers/catalog.py (Etap 5's own file, per ROADMAP.md) because every
+other /api/meta/* endpoint already does — keeping the whole path prefix
+in one router beats a stricter reading of which stage "owns" the file.
 """
 
 from typing import Any
@@ -11,6 +15,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query, Request
 from psycopg import AsyncConnection
 
+from app.catalog import compute_coverage, get_catalog
 from app.db import Database
 
 router = APIRouter()
@@ -120,6 +125,15 @@ async def schema(
         "database": database,
         "tables": [{"name": name, **info} for name, info in sorted(by_table.items())],
     }
+
+
+@router.get("/meta/coverage")
+async def coverage() -> dict[str, Any]:
+    """Which SQL capabilities from the control list (SPEC.md §3.2) the
+    current catalog covers, and how many queries cover each — CLAUDE.md
+    says to check this before adding a new catalog query, so it needs to
+    reflect the catalog exactly as loaded, not a cached snapshot."""
+    return compute_coverage(get_catalog())
 
 
 async def _fetch(conn: AsyncConnection, query: str) -> list[dict[str, Any]]:
