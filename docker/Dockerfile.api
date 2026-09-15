@@ -31,6 +31,13 @@ COPY app ./app
 COPY queries ./queries
 COPY experiments ./experiments
 
+# scripts/ and tests/ aren't served by the running app, but `make test`,
+# `make lint` and `make verify` all run inside this same container
+# (docker-compose.yml), so it needs them and pytest.ini too.
+COPY scripts ./scripts
+COPY tests ./tests
+COPY pytest.ini ./
+
 # Non-root user: the container never needs to write outside /srv/reports.
 RUN useradd --create-home --uid 10001 saw \
  && mkdir -p /srv/reports \
