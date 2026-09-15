@@ -2,9 +2,9 @@
 exact schema; a query is invalid if it doesn't match it, full stop.
 """
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 Database = Literal["dvdrental", "museum"]
 ChartType = Literal["bar", "line", "pie", "scatter", "none"]
@@ -76,3 +76,49 @@ class CatalogEntrySummary(BaseModel):
     title: str
     business_question: str
     sql_features: list[str]
+
+
+class ExecuteRequest(BaseModel):
+    """POST /api/execute body — SPEC.md §ФВ-02/§ФВ-03: either a catalog
+    query_id (trusted, authored SQL) or raw sql + database (validated by
+    app.security before it ever reaches the executor), never both."""
+
+    query_id: str | None = None
+    sql: str | None = None
+    database: Database | None = None
+    variant: int | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    row_limit: int | None = None
+    with_plan: bool = False
+
+    @model_validator(mode="after")
+    def _check_source(self) -> "ExecuteRequest":
+        if bool(self.query_id) == bool(self.sql):
+            raise ValueError("Provide exactly one of query_id or sql.")
+        if self.sql is not None and self.database is None:
+            raise ValueError("database is required when sql is provided.")
+        return self
+
+
+class ColumnInfo(BaseModel):
+    name: str
+    type: str
+
+
+class ExecuteTimings(BaseModel):
+    roundtrip_ms: float
+    # planning_ms/execution_ms come from EXPLAIN ANALYZE (SPEC.md §ФВ-02)
+    # and stay unset until Etap 7's app/explain.py exists to produce them
+    # — with_plan is accepted here now so the request/response contract
+    # doesn't change shape once it does.
+    planning_ms: float | None = None
+    execution_ms: float | None = None
+
+
+class ExecuteResponse(BaseModel):
+    query_id: str | None = None
+    columns: list[ColumnInfo]
+    rows: list[list[Any]]
+    row_count: int
+    truncated: bool
+    timings: ExecuteTimings
