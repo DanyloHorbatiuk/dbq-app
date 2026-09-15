@@ -11,8 +11,14 @@ __pycache__/
 # Large / manually-provided dump, see README.md
 db/dvdrental/dvdrental.tar
 
-# Generated output (produced by code, never hand-edited — CLAUDE.md)
-reports/
+# Generated output (produced by code, never hand-edited — CLAUDE.md).
+# .gitkeep files are excepted so the directories themselves exist after
+# a fresh checkout, for docker-compose's bind mount and relative paths.
+reports/*
+!reports/.gitkeep
+!reports/plans/
+reports/plans/*
+!reports/plans/.gitkeep
 
 # Editor / OS
 .DS_Store

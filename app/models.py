@@ -172,3 +172,55 @@ class ExplainResponse(BaseModel):
     planning_ms: float | None
     execution_ms: float | None
     plan_summary: PlanSummary
+
+
+class BenchmarkRequest(BaseModel):
+    """POST /api/benchmark body — SPEC.md §ФВ-05. Same query_id/sql
+    resolution rules as ExecuteRequest. cold_cache is accepted for
+    parity with SPEC.md's example payload but is a no-op — see
+    app.benchmark.run_benchmark's docstring for why a real cache flush
+    isn't something a read-only API can safely do."""
+
+    query_id: str | None = None
+    sql: str | None = None
+    database: Database | None = None
+    variant: int | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    runs: int | None = Field(default=None, ge=2, le=100)
+    discard_first: bool = True
+    cold_cache: bool = False
+    row_limit: int | None = None
+
+    @model_validator(mode="after")
+    def _check_source(self) -> "BenchmarkRequest":
+        if bool(self.query_id) == bool(self.sql):
+            raise ValueError("Provide exactly one of query_id or sql.")
+        if self.sql is not None and self.database is None:
+            raise ValueError("database is required when sql is provided.")
+        return self
+
+
+class BenchmarkStatsOut(BaseModel):
+    min_ms: float
+    median_ms: float
+    mean_ms: float
+    p95_ms: float
+    max_ms: float
+    stddev_ms: float
+
+
+class EnvironmentInfo(BaseModel):
+    server_version: str
+    shared_buffers: str
+    work_mem: str
+    random_page_cost: str
+    table_sizes: dict[str, str]
+
+
+class BenchmarkResponse(BaseModel):
+    query_id: str | None = None
+    runs: int
+    cold_run_ms: float
+    stats: BenchmarkStatsOut
+    samples_ms: list[float]
+    environment: EnvironmentInfo
