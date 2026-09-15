@@ -1,0 +1,20 @@
+id: museum-l2-02
+database: museum
+level: 2
+title: "Квитки груповим бронюванням з оплатою онлайн"
+business_question: >
+  Скільки квитків куплено груповим бронюванням з оплатою онлайн?
+sql_features: [where, aggregate]
+description: >
+  Фільтрує квитки одночасно за двома стовпцями. Використовується для
+  демонстрації складеного (композитного) індексу (Етап 9, expériment
+  idx-museum-tickets-channel-payment).
+expected_insight: >
+  Комбінація двох нечастих значень (group_booking, online) дає малу
+  вибірку — ідеальний кандидат для складеного індексу за двома
+  стовпцями замість двох окремих однокол.
+sql: |
+  SELECT count(*) AS tickets_count, sum(quantity) AS visitors
+  FROM museum_network.tickets
+  WHERE sales_channel = 'group_booking'
+    AND payment_method = 'online';

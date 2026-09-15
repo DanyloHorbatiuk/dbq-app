@@ -13,9 +13,11 @@ from fastapi.staticfiles import StaticFiles
 from app.catalog import CatalogError, get_catalog
 from app.config import get_settings
 from app.db import Pools
+from app.experiments import ExperimentError, get_experiments
 from app.routers.benchmark import router as benchmark_router
 from app.routers.catalog import router as catalog_router
 from app.routers.execute import router as execute_router
+from app.routers.experiments import router as experiments_router
 from app.routers.explain import router as explain_router
 from app.routers.meta import router as meta_router
 
@@ -26,10 +28,16 @@ from app.routers.meta import router as meta_router
 # code, not a traceback: importing (and therefore validating) the
 # catalog here, outside any async/exception-handling machinery FastAPI
 # or uvicorn would otherwise wrap it in, is what makes that possible.
+# experiments/*.yaml gets the same treatment for the same reason —
+# app.experiments.ExperimentError mirrors CatalogError exactly.
 try:
     get_catalog()
+    get_experiments()
 except CatalogError as exc:
     print(f"FATAL: query catalog failed to load: {exc}", file=sys.stderr)
+    sys.exit(1)
+except ExperimentError as exc:
+    print(f"FATAL: experiments failed to load: {exc}", file=sys.stderr)
     sys.exit(1)
 
 
@@ -56,6 +64,7 @@ app.include_router(catalog_router, prefix="/api")
 app.include_router(execute_router, prefix="/api")
 app.include_router(explain_router, prefix="/api")
 app.include_router(benchmark_router, prefix="/api")
+app.include_router(experiments_router, prefix="/api")
 
 # Mounted last and at "/": API routes registered above always match
 # first, so this only ever serves the frontend's static files (added in

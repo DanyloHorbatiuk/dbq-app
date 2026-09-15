@@ -1,0 +1,19 @@
+id: museum-l1-02
+database: museum
+level: 1
+title: "Квитки за конкретний період відвідування"
+business_question: >
+  Скільки квитків продано на відвідування в межах вказаного місяця?
+sql_features: [where, order_by, date_function]
+description: >
+  Фільтрує квитки за датою відвідування. Використовується для
+  демонстрації B-tree індексу за датою (Етап 9, expériment
+  idx-museum-tickets-visit-date).
+expected_insight: >
+  Без індексу за visit_date планувальник змушений сканувати всю
+  таблицю tickets навіть для вибірки одного місяця.
+sql: |
+  SELECT ticket_id, visit_date, quantity, payment_method
+  FROM museum_network.tickets
+  WHERE visit_date BETWEEN DATE '2024-06-01' AND DATE '2024-06-30'
+  ORDER BY visit_date;

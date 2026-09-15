@@ -1,0 +1,17 @@
+id: idx-museum-feedback-month
+database: museum
+title: "Функціональний індекс за місяцем відгуку"
+description: >
+  Індекс за виразом date_trunc('month', created_at AT TIME ZONE 'UTC'),
+  а не за самим стовпцем created_at — потрібен, бо запит фільтрує саме
+  за цим виразом. AT TIME ZONE 'UTC' — не просто стиль: created_at це
+  TIMESTAMPTZ, а звичайний date_trunc(text, timestamptz) залежить від
+  часового поясу сесії (STABLE), тому PostgreSQL відмовляється
+  використовувати його в індекс-виразі, який має бути IMMUTABLE.
+  Приведення до фіксованого поясу 'UTC' прибирає цю залежність.
+query_id: museum-l1-04
+table_name: museum_network.visitor_feedback
+index_name: museum_network.idx_feedback_month
+create_sql: |
+  CREATE INDEX idx_feedback_month
+  ON museum_network.visitor_feedback (date_trunc('month', created_at AT TIME ZONE 'UTC'));

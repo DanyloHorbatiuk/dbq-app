@@ -1,0 +1,23 @@
+id: museum-l1-03
+database: museum
+level: 1
+title: "Найцінніші експонати на реставрації"
+business_question: >
+  Які експонати наразі на реставрації мають найвищу страхову вартість?
+sql_features: [where, order_by, limit]
+description: >
+  Фільтрує вузьку підмножину експонатів (лише зі статусом
+  "under_restoration") і сортує за вартістю. Використовується для
+  демонстрації часткового (partial) індексу (Етап 9, expériment
+  idx-museum-exhibits-restoration-value): індекс охоплює лише цю
+  підмножину рядків, тож він менший і дешевший за повний.
+expected_insight: >
+  Частковий індекс за insurance_value WHERE condition_status =
+  'under_restoration' у рази менший за повний індекс на всю таблицю
+  exhibits, але прискорює саме цей запит так само ефективно.
+sql: |
+  SELECT title, insurance_value
+  FROM museum_network.exhibits
+  WHERE condition_status = 'under_restoration'
+  ORDER BY insurance_value DESC
+  LIMIT 20;

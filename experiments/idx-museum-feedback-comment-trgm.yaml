@@ -1,0 +1,12 @@
+id: idx-museum-feedback-comment-trgm
+database: museum
+title: "GIN-індекс за триграмами тексту відгуків"
+description: >
+  GIN-індекс на pg_trgm-триграмах comment — прискорює ILIKE '%...%',
+  чого звичайний B-tree в принципі не вміє.
+query_id: museum-l1-05
+table_name: museum_network.visitor_feedback
+index_name: museum_network.idx_feedback_comment_trgm
+create_sql: |
+  CREATE INDEX idx_feedback_comment_trgm
+  ON museum_network.visitor_feedback USING GIN (comment gin_trgm_ops);

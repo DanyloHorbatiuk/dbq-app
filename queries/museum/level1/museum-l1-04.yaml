@@ -1,0 +1,22 @@
+id: museum-l1-04
+database: museum
+level: 1
+title: "Відгуки за конкретний місяць"
+business_question: >
+  Скільки відгуків залишили відвідувачі у вказаному місяці?
+sql_features: [where, date_function]
+description: >
+  Фільтрує за виразом date_trunc('month', created_at AT TIME ZONE
+  'UTC'), а не за самим стовпцем. Використовується для демонстрації
+  функціонального (expression) індексу (Етап 9, expériment
+  idx-museum-feedback-month): звичайний індекс за created_at тут не
+  допоможе, бо предикат — це вираз, а не голий стовпець. AT TIME ZONE
+  'UTC' потрібен, щоб вираз був IMMUTABLE (created_at — TIMESTAMPTZ) і
+  міг узагалі лягти в індекс — див. пояснення в самому experiment YAML.
+expected_insight: >
+  Без функціонального індексу планувальник обчислює date_trunc для
+  кожного з 80 000 рядків підряд (Seq Scan).
+sql: |
+  SELECT count(*) AS feedback_count
+  FROM museum_network.visitor_feedback
+  WHERE date_trunc('month', created_at AT TIME ZONE 'UTC') = DATE '2024-06-01';

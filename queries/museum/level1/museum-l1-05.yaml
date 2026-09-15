@@ -1,0 +1,21 @@
+id: museum-l1-05
+database: museum
+level: 1
+title: "Пошук відгуків за ключовим словом"
+business_question: >
+  Які відгуки відвідувачів згадують конкретне слово чи фразу?
+sql_features: [where, string_function]
+description: >
+  Пошук підрядка в тексті відгуку через ILIKE. Використовується для
+  демонстрації GIN-індексу за триграмами (Етап 9, expériment
+  idx-museum-feedback-comment-trgm) — розширення pg_trgm дозволяє
+  GIN-індексу прискорювати саме такий "%слово%"-пошук, на відміну від
+  звичайного B-tree.
+expected_insight: >
+  Без GIN-індексу за триграмами ILIKE '%...%' завжди вимагає Seq Scan
+  і посимвольного порівняння кожного відгуку — B-tree тут не
+  допомагає в принципі.
+sql: |
+  SELECT feedback_id, rating, comment
+  FROM museum_network.visitor_feedback
+  WHERE comment ILIKE '%crowded%';

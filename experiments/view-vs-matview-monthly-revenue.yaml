@@ -1,0 +1,16 @@
+id: view-vs-matview-monthly-revenue
+kind: view_vs_matview
+database: museum
+title: "VIEW проти MATERIALIZED VIEW: місячна виручка"
+description: >
+  Порівнює час виконання запиту до звичайного представлення
+  v_quarterly_sales_performance (рахує наживо щоразу) проти
+  матеріалізованого mv_monthly_revenue (готові дані, потребує
+  REFRESH), плюс фіксує час самого REFRESH і розмір matview.
+matview_name: museum_network.mv_monthly_revenue
+refresh_sql: |
+  REFRESH MATERIALIZED VIEW CONCURRENTLY museum_network.mv_monthly_revenue;
+sql_view: |
+  SELECT * FROM museum_network.v_quarterly_sales_performance;
+sql_matview: |
+  SELECT * FROM museum_network.mv_monthly_revenue;

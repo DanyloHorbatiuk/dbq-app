@@ -1,0 +1,14 @@
+id: idx-museum-exhibits-restoration-value
+database: museum
+title: "Частковий індекс за вартістю експонатів на реставрації"
+description: >
+  Індекс охоплює лише рядки з condition_status = 'under_restoration' —
+  значно менший за повний індекс на всю таблицю exhibits, і
+  прискорює саме той запит, для якого призначений.
+query_id: museum-l1-03
+table_name: museum_network.exhibits
+index_name: museum_network.idx_exhibits_restoration_value
+create_sql: |
+  CREATE INDEX idx_exhibits_restoration_value
+  ON museum_network.exhibits (insurance_value)
+  WHERE condition_status = 'under_restoration';

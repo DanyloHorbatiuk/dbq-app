@@ -1,0 +1,13 @@
+id: idx-museum-tickets-channel-payment
+database: museum
+title: "Складений індекс за каналом продажу й способом оплати"
+description: >
+  Один індекс за двома стовпцями замість двох окремих однокол —
+  дозволяє планувальнику задовольнити обидві умови WHERE одним
+  проходом по індексу.
+query_id: museum-l2-02
+table_name: museum_network.tickets
+index_name: museum_network.idx_tickets_channel_payment
+create_sql: |
+  CREATE INDEX idx_tickets_channel_payment
+  ON museum_network.tickets (sales_channel, payment_method);

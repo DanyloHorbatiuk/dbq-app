@@ -1,0 +1,12 @@
+id: idx-museum-tickets-visit-date
+database: museum
+title: "B-tree індекс за датою відвідування"
+description: >
+  Найпростіший випадок: звичайний B-tree індекс на один стовпець,
+  який запит фільтрує через BETWEEN.
+query_id: museum-l1-02
+table_name: museum_network.tickets
+index_name: museum_network.idx_tickets_visit_date
+create_sql: |
+  CREATE INDEX idx_tickets_visit_date
+  ON museum_network.tickets (visit_date);
